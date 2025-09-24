@@ -1,0 +1,22 @@
+# Ignorar archivos y directorios generados por IDEs y sistemas de construcción
+.classpath
+.project
+.settings/
+.metadata/
+bin/
+build/
+dist/
+nbproject/private/
+
+# Ignorar archivos específicos que causaron errores de "Filename too long"
+netbeans_sample/.metadata/.plugins/org.eclipse.swt/EBWebView/Default/blob_storage/
+netbeans_sample/.metadata/.plugins/org.eclipse.swt/EBWebView/Default/Feature Engagement Tracker/
+netbeans_sample/.metadata/.plugins/org.eclipse.swt/EBWebView/Default/optimization_guide_hint_cache_store/
+netbeans_sample/.metadata/.plugins/org.eclipse.eclipse.core.resources/.projects/.org.eclipse.egit.core.cmp/.location
+
+# Ignorar archivos de log
+*.log
+
+# Ignorar archivos temporales
+*~
+*.tmp
