@@ -1,0 +1,12 @@
+# Ignorar directorios de metadatos de IDE
+netbeans_sample/.metadata/
+
+# Ignorar archivos compilados de Java
+*.class
+*.jar
+
+# Ignorar directorios de construcción
+build/
+
+# Ignorar archivos privados de NetBeans
+nbproject/private/
