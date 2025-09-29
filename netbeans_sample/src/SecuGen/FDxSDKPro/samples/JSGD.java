@@ -18,6 +18,10 @@ import java.sql.SQLException;
 import java.sql.Time;
 import java.util.Base64;
 import java.util.Calendar;
+import java.util.Vector;
+import javax.swing.JScrollPane;
+import javax.swing.JTable;
+import javax.swing.table.DefaultTableModel;
 
 /**
  *
@@ -153,6 +157,8 @@ public class JSGD extends javax.swing.JFrame {
         jLabel3 = new javax.swing.JLabel();
         jSliderSeconds = new javax.swing.JSlider();
         jButtonClose = new javax.swing.JButton();
+        jLabelRegistro = new javax.swing.JLabel();
+        jComboBoxRegistro = new javax.swing.JComboBox();
         jPanelRegisterVerify = new javax.swing.JPanel();
         jLabelSecurityLevel = new javax.swing.JLabel();
         jLabelRegistration = new javax.swing.JLabel();
@@ -173,26 +179,12 @@ public class JSGD extends javax.swing.JFrame {
         jProgressBarR2 = new javax.swing.JProgressBar();
         jProgressBarV1 = new javax.swing.JProgressBar();
         jPanelDeviceInfo = new javax.swing.JPanel();
-        jLabelDeviceInfoGroup = new javax.swing.JLabel();
-        jLabelDeviceID = new javax.swing.JLabel();
-        jTextFieldDeviceID = new javax.swing.JTextField();
-        jLabelFWVersion = new javax.swing.JLabel();
-        jTextFieldFWVersion = new javax.swing.JTextField();
-        jLabelSerialNumber = new javax.swing.JLabel();
-        jTextFieldSerialNumber = new javax.swing.JTextField();
-        jLabelImageWidth = new javax.swing.JLabel();
-        jTextFieldImageWidth = new javax.swing.JTextField();
-        jLabelImageHeight = new javax.swing.JLabel();
-        jTextFieldImageHeight = new javax.swing.JTextField();
-        jLabelImageDPI = new javax.swing.JLabel();
-        jTextFieldImageDPI = new javax.swing.JTextField();
-        jLabelBrightness = new javax.swing.JLabel();
-        jTextFieldBrightness = new javax.swing.JTextField();
-        jLabelContrast = new javax.swing.JLabel();
-        jTextFieldContrast = new javax.swing.JTextField();
-        jLabelGain = new javax.swing.JLabel();
-        jTextFieldGain = new javax.swing.JTextField();
         jButtonGetDeviceInfo = new javax.swing.JButton();
+        jLabelCarnet = new javax.swing.JLabel();
+        jTextFieldCarnet = new javax.swing.JTextField();
+        jLabelNombreTrabajador = new javax.swing.JLabel();
+        jScrollPaneAsistencia = new javax.swing.JScrollPane();
+        jTableAsistencia = new javax.swing.JTable();
         jComboBoxDeviceName = new javax.swing.JComboBox();
         jLabelDeviceName = new javax.swing.JLabel();
         jLabelSpacer1 = new javax.swing.JLabel();
@@ -235,9 +227,6 @@ public class JSGD extends javax.swing.JFrame {
         jComboBoxUSBPort.setMinimumSize(new java.awt.Dimension(170, 27));
         jComboBoxUSBPort.setPreferredSize(new java.awt.Dimension(170, 27));
         jPanelImage.add(jComboBoxUSBPort, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 110, 170, 27));
-
-        jLabelRegistro = new javax.swing.JLabel();
-        jComboBoxRegistro = new javax.swing.JComboBox();
 
         jLabelRegistro.setText("Registro");
         jPanelImage.add(jLabelRegistro, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 140, -1, -1));
@@ -319,7 +308,7 @@ public class JSGD extends javax.swing.JFrame {
 
         jPanelRegisterVerify.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
-        jLabelSecurityLevel.setBorder(javax.swing.BorderFactory.createTitledBorder("Security Level"));
+        jLabelSecurityLevel.setBorder(javax.swing.BorderFactory.createTitledBorder("Nivel de Seguridad"));
         jPanelRegisterVerify.add(jLabelSecurityLevel,
                 new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 10, 460, 60));
 
@@ -444,97 +433,43 @@ public class JSGD extends javax.swing.JFrame {
 
         jPanelDeviceInfo.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
-        jLabelDeviceInfoGroup.setBorder(javax.swing.BorderFactory.createTitledBorder("DeviceInfo"));
-        jPanelDeviceInfo.add(jLabelDeviceInfoGroup,
-                new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 10, 290, 290));
+        jLabelCarnet.setText("Carnet de Identidad:");
+        jPanelDeviceInfo.add(jLabelCarnet, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 30, -1, -1));
+        jPanelDeviceInfo.add(jTextFieldCarnet, new org.netbeans.lib.awtextra.AbsoluteConstraints(150, 30, 160, -1));
 
-        jLabelDeviceID.setText("Dispositivo ID");
-        jPanelDeviceInfo.add(jLabelDeviceID, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 30, -1, -1));
-
-        jTextFieldDeviceID.setEditable(false);
-        jTextFieldDeviceID
-                .setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.LOWERED));
-        jPanelDeviceInfo.add(jTextFieldDeviceID, new org.netbeans.lib.awtextra.AbsoluteConstraints(120, 30, 160, -1));
-
-        jLabelFWVersion.setText("F/W Versión");
-        jPanelDeviceInfo.add(jLabelFWVersion, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 60, -1, -1));
-
-        jTextFieldFWVersion.setEditable(false);
-        jTextFieldFWVersion
-                .setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.LOWERED));
-        jPanelDeviceInfo.add(jTextFieldFWVersion, new org.netbeans.lib.awtextra.AbsoluteConstraints(120, 60, 160, -1));
-
-        jLabelSerialNumber.setText("Serie #");
-        jPanelDeviceInfo.add(jLabelSerialNumber, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 90, -1, -1));
-
-        jTextFieldSerialNumber.setEditable(false);
-        jTextFieldSerialNumber
-                .setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.LOWERED));
-        jPanelDeviceInfo.add(jTextFieldSerialNumber,
-                new org.netbeans.lib.awtextra.AbsoluteConstraints(120, 90, 160, -1));
-
-        jLabelImageWidth.setText("Ancho de Imagen");
-        jPanelDeviceInfo.add(jLabelImageWidth, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 120, -1, -1));
-
-        jTextFieldImageWidth.setEditable(false);
-        jTextFieldImageWidth
-                .setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.LOWERED));
-        jPanelDeviceInfo.add(jTextFieldImageWidth,
-                new org.netbeans.lib.awtextra.AbsoluteConstraints(120, 120, 160, -1));
-
-        jLabelImageHeight.setText("Altura de Imagen");
-        jPanelDeviceInfo.add(jLabelImageHeight, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 150, -1, -1));
-
-        jTextFieldImageHeight.setEditable(false);
-        jTextFieldImageHeight
-                .setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.LOWERED));
-        jPanelDeviceInfo.add(jTextFieldImageHeight,
-                new org.netbeans.lib.awtextra.AbsoluteConstraints(120, 150, 160, -1));
-
-        jLabelImageDPI.setText("Imagen DPI");
-        jPanelDeviceInfo.add(jLabelImageDPI, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 180, -1, -1));
-
-        jTextFieldImageDPI.setEditable(false);
-        jTextFieldImageDPI
-                .setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.LOWERED));
-        jPanelDeviceInfo.add(jTextFieldImageDPI, new org.netbeans.lib.awtextra.AbsoluteConstraints(120, 180, 160, -1));
-
-        jLabelBrightness.setText("Brillo");
-        jPanelDeviceInfo.add(jLabelBrightness, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 210, -1, -1));
-
-        jTextFieldBrightness.setEditable(false);
-        jTextFieldBrightness
-                .setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.LOWERED));
-        jPanelDeviceInfo.add(jTextFieldBrightness,
-                new org.netbeans.lib.awtextra.AbsoluteConstraints(120, 210, 160, -1));
-
-        jLabelContrast.setText("Contraste");
-        jPanelDeviceInfo.add(jLabelContrast, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 240, -1, -1));
-
-        jTextFieldContrast.setEditable(false);
-        jTextFieldContrast
-                .setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.LOWERED));
-        jPanelDeviceInfo.add(jTextFieldContrast, new org.netbeans.lib.awtextra.AbsoluteConstraints(120, 240, 160, -1));
-
-        jLabelGain.setText("Ganancia");
-        jPanelDeviceInfo.add(jLabelGain, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 270, -1, -1));
-
-        jTextFieldGain.setEditable(false);
-        jTextFieldGain.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.LOWERED));
-        jPanelDeviceInfo.add(jTextFieldGain, new org.netbeans.lib.awtextra.AbsoluteConstraints(120, 270, 160, -1));
-
-        jButtonGetDeviceInfo.setText("Obtener Información del Dispositivo");
-        jButtonGetDeviceInfo.setMaximumSize(new java.awt.Dimension(150, 30));
-        jButtonGetDeviceInfo.setMinimumSize(new java.awt.Dimension(150, 30));
-        jButtonGetDeviceInfo.setPreferredSize(new java.awt.Dimension(150, 30));
+        jButtonGetDeviceInfo.setText("Obtener Información");
         jButtonGetDeviceInfo.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jButtonGetDeviceInfoActionPerformed(evt);
             }
         });
-        jPanelDeviceInfo.add(jButtonGetDeviceInfo, new org.netbeans.lib.awtextra.AbsoluteConstraints(320, 20, 150, 30));
+        jPanelDeviceInfo.add(jButtonGetDeviceInfo, new org.netbeans.lib.awtextra.AbsoluteConstraints(320, 30, 150, 30));
 
-        jTabbedPane1.addTab("Información del Dispositivo", jPanelDeviceInfo);
+        jLabelNombreTrabajador.setText("Nombre del Trabajador:");
+        jPanelDeviceInfo.add(jLabelNombreTrabajador,
+                new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 70, 450, -1));
+
+        jTableAsistencia.setModel(new javax.swing.table.DefaultTableModel(
+                new Object[][] {
+
+                },
+                new String[] {
+                        "Fecha", "Hora Entrada", "Hora Salida"
+                }) {
+            boolean[] canEdit = new boolean[] {
+                    false, false, false
+            };
+
+            public boolean isCellEditable(int rowIndex, int columnIndex) {
+                return canEdit[columnIndex];
+            }
+        });
+        jScrollPaneAsistencia.setViewportView(jTableAsistencia);
+
+        jPanelDeviceInfo.add(jScrollPaneAsistencia,
+                new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 100, 450, 250));
+
+        jTabbedPane1.addTab("Información del Trabajador", jPanelDeviceInfo);
 
         getContentPane().add(jTabbedPane1, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 35, 530, 420));
 
@@ -572,23 +507,53 @@ public class JSGD extends javax.swing.JFrame {
     }// GEN-LAST:event_jButtonCloseActionPerformed
 
     private void jButtonGetDeviceInfoActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButtonGetDeviceInfoActionPerformed
-        long iError;
+        String carnetIdentidad = jTextFieldCarnet.getText();
+        if (carnetIdentidad.trim().isEmpty()) {
+            jLabelStatus.setText("Por favor, introduzca el carnet de identidad.");
+            return;
+        }
 
-        iError = fplib.GetDeviceInfo(deviceInfo);
-        if (ret == SGFDxErrorCode.SGFDX_ERROR_NONE) {
-            this.jLabelStatus.setText("GetDeviceInfo() Success");
-            this.jTextFieldSerialNumber.setText(new String(deviceInfo.deviceSN()));
-            this.jTextFieldBrightness.setText(new String(Integer.toString(deviceInfo.brightness)));
-            this.jTextFieldContrast.setText(new String(Integer.toString((int) deviceInfo.contrast)));
-            this.jTextFieldDeviceID.setText(new String(Integer.toString(deviceInfo.deviceID)));
-            this.jTextFieldFWVersion.setText(new String(Integer.toHexString(deviceInfo.FWVersion)));
-            this.jTextFieldGain.setText(new String(Integer.toString(deviceInfo.gain)));
-            this.jTextFieldImageDPI.setText(new String(Integer.toString(deviceInfo.imageDPI)));
-            this.jTextFieldImageHeight.setText(new String(Integer.toString(deviceInfo.imageHeight)));
-            this.jTextFieldImageWidth.setText(new String(Integer.toString(deviceInfo.imageWidth)));
-        } else
-            this.jLabelStatus.setText("GetDeviceInfo() Error : " + iError);
+        // Limpiar datos anteriores
+        jLabelNombreTrabajador.setText("Nombre del Trabajador:");
+        DefaultTableModel model = (DefaultTableModel) jTableAsistencia.getModel();
+        model.setRowCount(0);
 
+        try {
+            // Obtener nombre del trabajador
+            String sqlNombre = "SELECT nombre, apellidos FROM trabajadores WHERE carnet_identidad = ?";
+            PreparedStatement pstmtNombre = dbConnection.prepareStatement(sqlNombre);
+            pstmtNombre.setString(1, carnetIdentidad);
+            ResultSet rsNombre = pstmtNombre.executeQuery();
+
+            if (rsNombre.next()) {
+                String nombre = rsNombre.getString("nombre") + " " + rsNombre.getString("apellidos");
+                jLabelNombreTrabajador.setText("Nombre del Trabajador: " + nombre);
+
+                // Obtener registro de asistencia del último mes
+                String sqlAsistencia = "SELECT fecha, hora_entrada, hora_salida FROM registro_asistencia ra " +
+                        "JOIN trabajadores t ON ra.trabajador_id = t.id " +
+                        "WHERE t.carnet_identidad = ? AND ra.fecha >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) " +
+                        "ORDER BY ra.fecha DESC";
+                PreparedStatement pstmtAsistencia = dbConnection.prepareStatement(sqlAsistencia);
+                pstmtAsistencia.setString(1, carnetIdentidad);
+                ResultSet rsAsistencia = pstmtAsistencia.executeQuery();
+
+                while (rsAsistencia.next()) {
+                    Vector<Object> row = new Vector<>();
+                    row.add(rsAsistencia.getDate("fecha"));
+                    row.add(rsAsistencia.getTime("hora_entrada"));
+                    row.add(rsAsistencia.getTime("hora_salida"));
+                    model.addRow(row);
+                }
+                jLabelStatus.setText("Información de asistencia cargada.");
+
+            } else {
+                jLabelStatus.setText("No se encontró ningún trabajador con el carnet de identidad proporcionado.");
+            }
+
+        } catch (SQLException e) {
+            jLabelStatus.setText("Error al consultar la base de datos: " + e.getMessage());
+        }
     }// GEN-LAST:event_jButtonGetDeviceInfoActionPerformed
 
     private void jButtonConfigActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButtonConfigActionPerformed
@@ -597,7 +562,6 @@ public class JSGD extends javax.swing.JFrame {
         iError = fplib.Configure(0);
         if (iError == SGFDxErrorCode.SGFDX_ERROR_NONE) {
             this.jLabelStatus.setText("Configure() Success");
-            this.jButtonGetDeviceInfo.doClick();
         } else if (iError == SGFDxErrorCode.SGFDX_ERROR_NOT_USED)
             this.jLabelStatus.setText("Configure() not supported on this platform");
         else
@@ -1045,15 +1009,6 @@ public class JSGD extends javax.swing.JFrame {
                 this.jLabelStatus.setText("OpenDevice() Exitoso [" + ret + "]");
                 ret = fplib.GetDeviceInfo(deviceInfo);
                 if (ret == SGFDxErrorCode.SGFDX_ERROR_NONE) {
-                    this.jTextFieldSerialNumber.setText(new String(deviceInfo.deviceSN()));
-                    this.jTextFieldBrightness.setText(new String(Integer.toString(deviceInfo.brightness)));
-                    this.jTextFieldContrast.setText(new String(Integer.toString((int) deviceInfo.contrast)));
-                    this.jTextFieldDeviceID.setText(new String(Integer.toString(deviceInfo.deviceID)));
-                    this.jTextFieldFWVersion.setText(new String(Integer.toHexString(deviceInfo.FWVersion)));
-                    this.jTextFieldGain.setText(new String(Integer.toString(deviceInfo.gain)));
-                    this.jTextFieldImageDPI.setText(new String(Integer.toString(deviceInfo.imageDPI)));
-                    this.jTextFieldImageHeight.setText(new String(Integer.toString(deviceInfo.imageHeight)));
-                    this.jTextFieldImageWidth.setText(new String(Integer.toString(deviceInfo.imageWidth)));
                     imgRegistration1 = new BufferedImage(deviceInfo.imageWidth, deviceInfo.imageHeight,
                             BufferedImage.TYPE_BYTE_GRAY);
                     imgRegistration2 = new BufferedImage(deviceInfo.imageWidth, deviceInfo.imageHeight,
@@ -1123,26 +1078,18 @@ public class JSGD extends javax.swing.JFrame {
     private javax.swing.JComboBox jComboBoxVerifySecurityLevel;
     private javax.swing.JComboBox jComboBoxRegistro;
     private javax.swing.JLabel jLabel1;
-    private javax.swing.JLabel jLabelRegistro;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
-    private javax.swing.JLabel jLabelBrightness;
-    private javax.swing.JLabel jLabelContrast;
-    private javax.swing.JLabel jLabelDeviceID;
-    private javax.swing.JLabel jLabelDeviceInfoGroup;
+    private javax.swing.JLabel jLabelCarnet;
     private javax.swing.JLabel jLabelDeviceName;
-    private javax.swing.JLabel jLabelFWVersion;
-    private javax.swing.JLabel jLabelGain;
     private javax.swing.JLabel jLabelImage;
-    private javax.swing.JLabel jLabelImageDPI;
-    private javax.swing.JLabel jLabelImageHeight;
-    private javax.swing.JLabel jLabelImageWidth;
+    private javax.swing.JLabel jLabelNombreTrabajador;
     private javax.swing.JLabel jLabelRegisterImage1;
     private javax.swing.JLabel jLabelRegisterImage2;
     private javax.swing.JLabel jLabelRegistration;
     private javax.swing.JLabel jLabelRegistrationBox;
+    private javax.swing.JLabel jLabelRegistro;
     private javax.swing.JLabel jLabelSecurityLevel;
-    private javax.swing.JLabel jLabelSerialNumber;
     private javax.swing.JLabel jLabelSpacer1;
     private javax.swing.JLabel jLabelSpacer2;
     private javax.swing.JLabel jLabelStatus;
@@ -1155,18 +1102,12 @@ public class JSGD extends javax.swing.JFrame {
     private javax.swing.JProgressBar jProgressBarR1;
     private javax.swing.JProgressBar jProgressBarR2;
     private javax.swing.JProgressBar jProgressBarV1;
+    private javax.swing.JScrollPane jScrollPaneAsistencia;
     private javax.swing.JSlider jSliderQuality;
     private javax.swing.JSlider jSliderSeconds;
     private javax.swing.JTabbedPane jTabbedPane1;
-    private javax.swing.JTextField jTextFieldBrightness;
-    private javax.swing.JTextField jTextFieldContrast;
-    private javax.swing.JTextField jTextFieldDeviceID;
-    private javax.swing.JTextField jTextFieldFWVersion;
-    private javax.swing.JTextField jTextFieldGain;
-    private javax.swing.JTextField jTextFieldImageDPI;
-    private javax.swing.JTextField jTextFieldImageHeight;
-    private javax.swing.JTextField jTextFieldImageWidth;
-    private javax.swing.JTextField jTextFieldSerialNumber;
+    private javax.swing.JTable jTableAsistencia;
+    private javax.swing.JTextField jTextFieldCarnet;
     // End of variables declaration//GEN-END:variables
 
 }
