@@ -15,6 +15,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Time;
 import java.util.Base64;
 import java.util.Calendar;
 
@@ -233,19 +234,19 @@ public class JSGD extends javax.swing.JFrame {
         jComboBoxUSBPort.setMaximumSize(new java.awt.Dimension(170, 27));
         jComboBoxUSBPort.setMinimumSize(new java.awt.Dimension(170, 27));
         jComboBoxUSBPort.setPreferredSize(new java.awt.Dimension(170, 27));
-        jPanelImage.add(jComboBoxUSBPort, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 60, 170, 27));
+        jPanelImage.add(jComboBoxUSBPort, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 110, 170, 27));
 
         jLabelRegistro = new javax.swing.JLabel();
         jComboBoxRegistro = new javax.swing.JComboBox();
         
         jLabelRegistro.setText("Registro");
-        jPanelImage.add(jLabelRegistro, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 90, -1, -1));
+        jPanelImage.add(jLabelRegistro, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 140, -1, -1));
         
         jComboBoxRegistro.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Entrada", "Salida" }));
         jComboBoxRegistro.setMaximumSize(new java.awt.Dimension(170, 27));
         jComboBoxRegistro.setMinimumSize(new java.awt.Dimension(170, 27));
         jComboBoxRegistro.setPreferredSize(new java.awt.Dimension(170, 27));
-        jPanelImage.add(jComboBoxRegistro, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 110, 170, 27));
+        jPanelImage.add(jComboBoxRegistro, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 160, 170, 27));
 
         jButtonToggleLED.setText("LED");
         jButtonToggleLED.setMaximumSize(new java.awt.Dimension(100, 30));
@@ -281,7 +282,7 @@ public class JSGD extends javax.swing.JFrame {
         jPanelImage.add(jButtonConfig, new org.netbeans.lib.awtextra.AbsoluteConstraints(310, 10, -1, 30));
 
         jLabel1.setText("Dispositivo USB");
-        jPanelImage.add(jLabel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 40, -1, -1));
+        jPanelImage.add(jLabel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 90, -1, -1));
 
         jSliderQuality.setMajorTickSpacing(10);
         jSliderQuality.setMinorTickSpacing(5);
@@ -289,13 +290,13 @@ public class JSGD extends javax.swing.JFrame {
         jSliderQuality.setPaintTicks(true);
         jSliderQuality.setName(""); // NOI18N
         jSliderQuality.setOpaque(false);
-        jPanelImage.add(jSliderQuality, new org.netbeans.lib.awtextra.AbsoluteConstraints(270, 170, 220, -1));
+        jPanelImage.add(jSliderQuality, new org.netbeans.lib.awtextra.AbsoluteConstraints(270, 220, 220, -1));
 
         jLabel2.setText("Calidad de Imagen");
-        jPanelImage.add(jLabel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 150, -1, -1));
+        jPanelImage.add(jLabel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 200, -1, -1));
 
         jLabel3.setText("Tiempo de espera (segundos)");
-        jPanelImage.add(jLabel3, new org.netbeans.lib.awtextra.AbsoluteConstraints(290, 230, -1, -1));
+        jPanelImage.add(jLabel3, new org.netbeans.lib.awtextra.AbsoluteConstraints(290, 280, -1, -1));
 
         jSliderSeconds.setMajorTickSpacing(1);
         jSliderSeconds.setMaximum(10);
@@ -303,7 +304,7 @@ public class JSGD extends javax.swing.JFrame {
         jSliderSeconds.setPaintLabels(true);
         jSliderSeconds.setPaintTicks(true);
         jSliderSeconds.setValue(5);
-        jPanelImage.add(jSliderSeconds, new org.netbeans.lib.awtextra.AbsoluteConstraints(270, 250, 220, -1));
+        jPanelImage.add(jSliderSeconds, new org.netbeans.lib.awtextra.AbsoluteConstraints(270, 300, 220, -1));
 
         jButtonClose.setText("Cerrar");
         jButtonClose.addActionListener(new java.awt.event.ActionListener() {
@@ -870,15 +871,24 @@ public class JSGD extends javax.swing.JFrame {
                 iError = fplib.MatchTemplate(dbTemplate, capturedTemplate, secuLevel, matched);
 
                 if (iError == SGFDxErrorCode.SGFDX_ERROR_NONE && matched[0]) {
+                    int trabajadorId = rs.getInt("id");
                     String nombre = rs.getString("nombre");
                     String apellidos = rs.getString("apellidos");
                     String carnet = rs.getString("carnet_identidad");
                     String fechaHora = rs.getString("fecha_hora_servidor");
                     String tipoRegistro = (String) jComboBoxRegistro.getSelectedItem();
-                    String etiquetaFecha = "Fecha/Hora " + tipoRegistro + ":";
-                    this.jLabelStatus.setText("Huella encontrada: " + nombre + " " + apellidos + " | CI: " + carnet + " | " + etiquetaFecha + " " + fechaHora);
+                    String etiquetaFecha = "Fecha/Hora " + tipoRegistro;
+                    String mensajeAsistencia = registrarAsistencia(trabajadorId, tipoRegistro);
+
+                    String mensajeCompleto = "<html><b>Trabajador:</b> " + nombre + " " + apellidos + "<br>" +
+                                             "<b>Carnet de Identidad:</b> " + carnet + "<br>" +
+                                             "<b>" + etiquetaFecha + ":</b> " + fechaHora + "<br>" +
+                                             "<b>Registro:</b> " + mensajeAsistencia + "</html>";
+
+                    JOptionPane.showMessageDialog(this, mensajeCompleto, "Confirmación de Registro", JOptionPane.INFORMATION_MESSAGE);
+                    this.jLabelStatus.setText("Huella de " + nombre + " " + apellidos + " verificada. " + mensajeAsistencia);
                     fingerMatched = true;
-                    break; 
+                    break;
                 }
             }
         }
@@ -905,6 +915,61 @@ public class JSGD extends javax.swing.JFrame {
             this.jLabelStatus.setText("JSGFPLib no esta inicializado");
         }
     }// GEN-LAST:event_jButtonToggleLEDActionPerformed
+
+    private String registrarAsistencia(int trabajadorId, String tipoRegistro) {
+        String checkSql = "SELECT id, hora_entrada, hora_salida FROM registro_asistencia WHERE trabajador_id = ? AND fecha = CURDATE()";
+        try (PreparedStatement checkPstmt = dbConnection.prepareStatement(checkSql)) {
+            checkPstmt.setInt(1, trabajadorId);
+            ResultSet rs = checkPstmt.executeQuery();
+
+            if (rs.next()) { // Record for today exists
+                Time horaEntrada = rs.getTime("hora_entrada");
+                Time horaSalida = rs.getTime("hora_salida");
+                int registroId = rs.getInt("id");
+
+                if (tipoRegistro.equals("Entrada")) {
+                    if (horaEntrada == null) {
+                        String updateSql = "UPDATE registro_asistencia SET hora_entrada = CURTIME() WHERE id = ?";
+                        try (PreparedStatement updatePstmt = dbConnection.prepareStatement(updateSql)) {
+                            updatePstmt.setInt(1, registroId);
+                            updatePstmt.executeUpdate();
+                            return "Entrada registrada exitosamente.";
+                        }
+                    } else {
+                        return "La entrada ya fue registrada hoy.";
+                    }
+                } else { // Salida
+                    if (horaSalida == null) {
+                        String updateSql = "UPDATE registro_asistencia SET hora_salida = CURTIME() WHERE id = ?";
+                        try (PreparedStatement updatePstmt = dbConnection.prepareStatement(updateSql)) {
+                            updatePstmt.setInt(1, registroId);
+                            updatePstmt.executeUpdate();
+                            return "Salida registrada exitosamente.";
+                        }
+                    } else {
+                        return "La salida ya fue registrada hoy.";
+                    }
+                }
+            } else { // No record for today, insert new
+                String insertSql = "INSERT INTO registro_asistencia (trabajador_id, fecha, hora_entrada, hora_salida) VALUES (?, CURDATE(), ?, ?)";
+                try (PreparedStatement insertPstmt = dbConnection.prepareStatement(insertSql)) {
+                    insertPstmt.setInt(1, trabajadorId);
+                    if (tipoRegistro.equals("Entrada")) {
+                        insertPstmt.setTime(2, new java.sql.Time(System.currentTimeMillis()));
+                        insertPstmt.setNull(3, java.sql.Types.TIME);
+                    } else { // Salida
+                        insertPstmt.setNull(2, java.sql.Types.TIME);
+                        insertPstmt.setTime(3, new java.sql.Time(System.currentTimeMillis()));
+                    }
+                    insertPstmt.executeUpdate();
+                    return tipoRegistro + " registrada exitosamente.";
+                }
+            }
+        } catch (SQLException e) {
+            this.jLabelStatus.setText("Error al registrar asistencia: " + e.getMessage());
+            return "Error al registrar asistencia.";
+        }
+    }
 
     private void jButtonInitActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButtonInitActionPerformed
         int selectedDevice = jComboBoxDeviceName.getSelectedIndex();
