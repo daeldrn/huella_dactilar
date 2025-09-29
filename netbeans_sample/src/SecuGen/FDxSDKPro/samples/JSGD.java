@@ -59,7 +59,7 @@ public class JSGD extends javax.swing.JFrame {
         this.jComboBoxRegisterSecurityLevel.setSelectedIndex(4);
         this.jComboBoxVerifySecurityLevel.setSelectedIndex(4);
         connectToDatabase();
-        
+
         // Set default value for jComboBoxRegistro based on time
         Calendar cal = Calendar.getInstance();
         int hour = cal.get(Calendar.HOUR_OF_DAY);
@@ -238,10 +238,10 @@ public class JSGD extends javax.swing.JFrame {
 
         jLabelRegistro = new javax.swing.JLabel();
         jComboBoxRegistro = new javax.swing.JComboBox();
-        
+
         jLabelRegistro.setText("Registro");
         jPanelImage.add(jLabelRegistro, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 140, -1, -1));
-        
+
         jComboBoxRegistro.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Entrada", "Salida" }));
         jComboBoxRegistro.setMaximumSize(new java.awt.Dimension(170, 27));
         jComboBoxRegistro.setMinimumSize(new java.awt.Dimension(170, 27));
@@ -622,9 +622,7 @@ public class JSGD extends javax.swing.JFrame {
                     long iError = fplib.MatchTemplate(dbTemplate, vrfMin, secuLevel, matched);
 
                     if (iError == SGFDxErrorCode.SGFDX_ERROR_NONE && matched[0]) {
-                        String nombre = rs.getString("nombre");
-                        String apellidos = rs.getString("apellidos");
-                        this.jLabelStatus.setText("Verificación Exitosa. Bienvenido, " + nombre + " " + apellidos);
+                        this.jLabelStatus.setText("Verificación Exitosa.");
                         fingerMatched = true;
                         break;
                     }
@@ -828,79 +826,82 @@ public class JSGD extends javax.swing.JFrame {
     }// GEN-LAST:event_jButtonCaptureR1ActionPerformed
 
     private void jButtonCaptureActionPerformed(java.awt.event.ActionEvent evt) {
-    if (fplib == null) {
-        this.jLabelStatus.setText("JSGFPLib no está inicializado");
-        return;
-    }
+        if (fplib == null) {
+            this.jLabelStatus.setText("JSGFPLib no está inicializado");
+            return;
+        }
 
-    // 1. Capturar la imagen de la huella
-    BufferedImage img1gray = new BufferedImage(deviceInfo.imageWidth, deviceInfo.imageHeight, BufferedImage.TYPE_BYTE_GRAY);
-    byte[] imageBuffer1 = ((java.awt.image.DataBufferByte) img1gray.getRaster().getDataBuffer()).getData();
-    long iError = fplib.GetImageEx(imageBuffer1, jSliderSeconds.getValue() * 1000, 0, jSliderQuality.getValue());
+        // 1. Capturar la imagen de la huella
+        BufferedImage img1gray = new BufferedImage(deviceInfo.imageWidth, deviceInfo.imageHeight,
+                BufferedImage.TYPE_BYTE_GRAY);
+        byte[] imageBuffer1 = ((java.awt.image.DataBufferByte) img1gray.getRaster().getDataBuffer()).getData();
+        long iError = fplib.GetImageEx(imageBuffer1, jSliderSeconds.getValue() * 1000, 0, jSliderQuality.getValue());
 
-    if (iError != SGFDxErrorCode.SGFDX_ERROR_NONE) {
-        this.jLabelStatus.setText("Error al capturar la imagen: " + iError);
-        return;
-    }
-    this.jLabelImage.setIcon(new ImageIcon(img1gray));
+        if (iError != SGFDxErrorCode.SGFDX_ERROR_NONE) {
+            this.jLabelStatus.setText("Error al capturar la imagen: " + iError);
+            return;
+        }
+        this.jLabelImage.setIcon(new ImageIcon(img1gray));
 
-    // 2. Crear la plantilla de la huella capturada
-    byte[] capturedTemplate = new byte[400];
-    SGFingerInfo fingerInfo = new SGFingerInfo();
-    fingerInfo.FingerNumber = SGFingerPosition.SG_FINGPOS_LI;
-    fingerInfo.ImpressionType = SGImpressionType.SG_IMPTYPE_LP;
-    fingerInfo.ViewNumber = 1;
-    
-    iError = fplib.CreateTemplate(fingerInfo, imageBuffer1, capturedTemplate);
-    if (iError != SGFDxErrorCode.SGFDX_ERROR_NONE) {
-        this.jLabelStatus.setText("Error al crear la plantilla: " + iError);
-        return;
-    }
+        // 2. Crear la plantilla de la huella capturada
+        byte[] capturedTemplate = new byte[400];
+        SGFingerInfo fingerInfo = new SGFingerInfo();
+        fingerInfo.FingerNumber = SGFingerPosition.SG_FINGPOS_LI;
+        fingerInfo.ImpressionType = SGImpressionType.SG_IMPTYPE_LP;
+        fingerInfo.ViewNumber = 1;
 
-    // 3. Verificar la huella en la base de datos
-    boolean[] matched = new boolean[1];
-    long secuLevel = (long) (this.jComboBoxVerifySecurityLevel.getSelectedIndex() + 1);
-    String sql = "SELECT id, nombre, apellidos, carnet_identidad, huella_dactilar, NOW() as fecha_hora_servidor FROM trabajadores WHERE huella_dactilar IS NOT NULL";
-    
-    try (PreparedStatement pstmt = dbConnection.prepareStatement(sql); ResultSet rs = pstmt.executeQuery()) {
-        boolean fingerMatched = false;
-        while (rs.next()) {
-            String encodedTemplate = rs.getString("huella_dactilar");
-            if (encodedTemplate != null && !encodedTemplate.isEmpty()) {
-                byte[] dbTemplate = Base64.getDecoder().decode(encodedTemplate);
-                iError = fplib.MatchTemplate(dbTemplate, capturedTemplate, secuLevel, matched);
+        iError = fplib.CreateTemplate(fingerInfo, imageBuffer1, capturedTemplate);
+        if (iError != SGFDxErrorCode.SGFDX_ERROR_NONE) {
+            this.jLabelStatus.setText("Error al crear la plantilla: " + iError);
+            return;
+        }
 
-                if (iError == SGFDxErrorCode.SGFDX_ERROR_NONE && matched[0]) {
-                    int trabajadorId = rs.getInt("id");
-                    String nombre = rs.getString("nombre");
-                    String apellidos = rs.getString("apellidos");
-                    String carnet = rs.getString("carnet_identidad");
-                    String fechaHora = rs.getString("fecha_hora_servidor");
-                    String tipoRegistro = (String) jComboBoxRegistro.getSelectedItem();
-                    String etiquetaFecha = "Fecha/Hora " + tipoRegistro;
-                    String mensajeAsistencia = registrarAsistencia(trabajadorId, tipoRegistro);
+        // 3. Verificar la huella en la base de datos
+        boolean[] matched = new boolean[1];
+        long secuLevel = (long) (this.jComboBoxVerifySecurityLevel.getSelectedIndex() + 1);
+        String sql = "SELECT id, nombre, apellidos, carnet_identidad, huella_dactilar, NOW() as fecha_hora_servidor FROM trabajadores WHERE huella_dactilar IS NOT NULL";
 
-                    String mensajeCompleto = "<html><b>Trabajador:</b> " + nombre + " " + apellidos + "<br>" +
-                                             "<b>Carnet de Identidad:</b> " + carnet + "<br>" +
-                                             "<b>" + etiquetaFecha + ":</b> " + fechaHora + "<br>" +
-                                             "<b>Registro:</b> " + mensajeAsistencia + "</html>";
+        try (PreparedStatement pstmt = dbConnection.prepareStatement(sql); ResultSet rs = pstmt.executeQuery()) {
+            boolean fingerMatched = false;
+            while (rs.next()) {
+                String encodedTemplate = rs.getString("huella_dactilar");
+                if (encodedTemplate != null && !encodedTemplate.isEmpty()) {
+                    byte[] dbTemplate = Base64.getDecoder().decode(encodedTemplate);
+                    iError = fplib.MatchTemplate(dbTemplate, capturedTemplate, secuLevel, matched);
 
-                    JOptionPane.showMessageDialog(this, mensajeCompleto, "Confirmación de Registro", JOptionPane.INFORMATION_MESSAGE);
-                    this.jLabelStatus.setText("Huella de " + nombre + " " + apellidos + " verificada. " + mensajeAsistencia);
-                    fingerMatched = true;
-                    break;
+                    if (iError == SGFDxErrorCode.SGFDX_ERROR_NONE && matched[0]) {
+                        int trabajadorId = rs.getInt("id");
+                        String nombre = rs.getString("nombre");
+                        String apellidos = rs.getString("apellidos");
+                        String carnet = rs.getString("carnet_identidad");
+                        String fechaHora = rs.getString("fecha_hora_servidor");
+                        String tipoRegistro = (String) jComboBoxRegistro.getSelectedItem();
+                        String etiquetaFecha = "Fecha/Hora " + tipoRegistro;
+                        String mensajeAsistencia = registrarAsistencia(trabajadorId, tipoRegistro);
+
+                        String mensajeCompleto = "<html><b>Trabajador:</b> " + nombre + " " + apellidos + "<br>" +
+                                "<b>Carnet de Identidad:</b> " + carnet + "<br>" +
+                                "<b>" + etiquetaFecha + ":</b> " + fechaHora + "<br>" +
+                                "<b>Registro:</b> " + mensajeAsistencia + "</html>";
+
+                        JOptionPane.showMessageDialog(this, mensajeCompleto, "Confirmación de Registro",
+                                JOptionPane.INFORMATION_MESSAGE);
+                        this.jLabelStatus
+                                .setText("Verificación correcta. " + mensajeAsistencia);
+                        fingerMatched = true;
+                        break;
+                    }
                 }
             }
-        }
 
-        if (!fingerMatched) {
-            this.jLabelStatus.setText("Huella no encontrada en la base de datos.");
-        }
+            if (!fingerMatched) {
+                this.jLabelStatus.setText("Huella no encontrada en la base de datos.");
+            }
 
-    } catch (SQLException e) {
-        this.jLabelStatus.setText("Error al verificar en la base de datos: " + e.getMessage());
+        } catch (SQLException e) {
+            this.jLabelStatus.setText("Error al verificar en la base de datos: " + e.getMessage());
+        }
     }
-}
 
     private void jButtonToggleLEDActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButtonToggleLEDActionPerformed
         if (fplib != null) {
@@ -1095,9 +1096,9 @@ public class JSGD extends javax.swing.JFrame {
             pstmt.setString(2, carnetIdentidad);
             int affectedRows = pstmt.executeUpdate();
             if (affectedRows > 0) {
-                jLabelStatus.setText("Huella dactilar guardada para el trabajador con carnet: " + carnetIdentidad);
+                jLabelStatus.setText("Huella dactilar guardada exitosamente.");
             } else {
-                jLabelStatus.setText("No se encontró un trabajador con el carnet: " + carnetIdentidad);
+                jLabelStatus.setText("No se encontró ningún trabajador con el carnet de identidad proporcionado.");
             }
         } catch (SQLException e) {
             jLabelStatus.setText("Error al guardar la huella dactilar: " + e.getMessage());
