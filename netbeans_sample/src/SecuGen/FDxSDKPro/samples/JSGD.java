@@ -10,6 +10,12 @@ import SecuGen.FDxSDKPro.jni.*;
 import java.awt.*;
 import java.awt.image.*;
 import javax.swing.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Base64;
 
 /**
  *
@@ -37,6 +43,12 @@ public class JSGD extends javax.swing.JFrame {
     private static int MINIMUM_NUM_MINUTIAE = 20; // User defined
     private static int MAXIMUM_NFIQ = 2; // User defined
 
+    // Database connection details
+    private static final String DB_URL = "jdbc:mariadb://192.168.8.7:3306/mb_recursos_humanos";
+    private static final String DB_USER = "rrhh_dev";
+    private static final String DB_PASSWORD = "rrhh_dev_test";
+    private Connection dbConnection;
+
     /** Creates new form JSGD */
     public JSGD() {
         bLEDOn = false;
@@ -44,6 +56,32 @@ public class JSGD extends javax.swing.JFrame {
         disableControls();
         this.jComboBoxRegisterSecurityLevel.setSelectedIndex(4);
         this.jComboBoxVerifySecurityLevel.setSelectedIndex(4);
+        connectToDatabase();
+    }
+
+    private void connectToDatabase() {
+        try {
+            Class.forName("org.mariadb.jdbc.Driver");
+            dbConnection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+            if (dbConnection != null) {
+                jLabelStatus.setText("Conexión a la base de datos exitosa.");
+            }
+        } catch (ClassNotFoundException e) {
+            jLabelStatus
+                    .setText("Error: Driver de MariaDB no encontrado. Asegúrese de añadir el conector a su proyecto.");
+        } catch (SQLException ex) {
+            jLabelStatus.setText("Error al conectar a la base de datos: " + ex.getMessage());
+        }
+    }
+
+    private void disconnectFromDatabase() {
+        if (dbConnection != null) {
+            try {
+                dbConnection.close();
+            } catch (SQLException ex) {
+                // Ignorar errores al cerrar
+            }
+        }
     }
 
     private void disableControls() {
@@ -254,7 +292,7 @@ public class JSGD extends javax.swing.JFrame {
         jPanelImage.add(jButtonClose, new org.netbeans.lib.awtextra.AbsoluteConstraints(410, 10, 80, 30));
         jButtonClose.getAccessibleContext().setAccessibleName("jButtonClose");
 
-        jTabbedPane1.addTab("Imagen", jPanelImage);
+        jTabbedPane1.addTab("Inicio", jPanelImage);
 
         jPanelRegisterVerify.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
@@ -545,28 +583,38 @@ public class JSGD extends javax.swing.JFrame {
     }// GEN-LAST:event_jButtonConfigActionPerformed
 
     private void jButtonVerifyActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButtonVerifyActionPerformed
-        long iError;
         long secuLevel = (long) (this.jComboBoxVerifySecurityLevel.getSelectedIndex() + 1);
         boolean[] matched = new boolean[1];
-        matched[0] = false;
 
-        iError = fplib.MatchTemplate(regMin1, vrfMin, secuLevel, matched);
-        if (iError == SGFDxErrorCode.SGFDX_ERROR_NONE) {
-            if (matched[0])
-                this.jLabelStatus.setText("Verificaciión Exitosa (Coincidencia con Plantilla: 1)");
-            else {
-                iError = fplib.MatchTemplate(regMin2, vrfMin, secuLevel, matched);
-                if (iError == SGFDxErrorCode.SGFDX_ERROR_NONE)
-                    if (matched[0])
-                        this.jLabelStatus.setText("Verificaciión Exitosa (Coincidencia con Plantilla: 2)");
-                    else
-                        this.jLabelStatus.setText("Fallo de Verificación");
-                else
-                    this.jLabelStatus.setText("Intento 2 de Verificación Fallado - MatchTemplate() Error : " + iError);
+        String sql = "SELECT id, nombre, apellidos, huella_dactilar FROM trabajadores WHERE huella_dactilar IS NOT NULL";
+        try (PreparedStatement pstmt = dbConnection.prepareStatement(sql);
+                ResultSet rs = pstmt.executeQuery()) {
 
+            boolean fingerMatched = false;
+            while (rs.next()) {
+                String encodedTemplate = rs.getString("huella_dactilar");
+                if (encodedTemplate != null && !encodedTemplate.isEmpty()) {
+                    byte[] dbTemplate = Base64.getDecoder().decode(encodedTemplate);
+
+                    long iError = fplib.MatchTemplate(dbTemplate, vrfMin, secuLevel, matched);
+
+                    if (iError == SGFDxErrorCode.SGFDX_ERROR_NONE && matched[0]) {
+                        String nombre = rs.getString("nombre");
+                        String apellidos = rs.getString("apellidos");
+                        this.jLabelStatus.setText("Verificación Exitosa. Bienvenido, " + nombre + " " + apellidos);
+                        fingerMatched = true;
+                        break;
+                    }
+                }
             }
-        } else
-            this.jLabelStatus.setText("Intento 1 de Verificación Fallado - MatchTemplate() Error : " + iError);
+
+            if (!fingerMatched) {
+                this.jLabelStatus.setText("Fallo de Verificación. Huella no encontrada.");
+            }
+
+        } catch (SQLException e) {
+            this.jLabelStatus.setText("Error al verificar la huella dactilar: " + e.getMessage());
+        }
     }// GEN-LAST:event_jButtonVerifyActionPerformed
 
     private void jButtonRegisterActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButtonRegisterActionPerformed
@@ -582,9 +630,13 @@ public class JSGD extends javax.swing.JFrame {
             iError = fplib.GetMatchingScore(regMin1, regMin2, matchScore);
 
             if (iError == SGFDxErrorCode.SGFDX_ERROR_NONE) {
-                if (matched[0])
-                    this.jLabelStatus.setText("Registro Exitoso, Matching Score: " + matchScore[0]);
-                else
+                if (matched[0]) {
+                    String carnetIdentidad = JOptionPane.showInputDialog(this,
+                            "Registro exitoso. Ingrese el carnet de identidad del trabajador:");
+                    if (carnetIdentidad != null && !carnetIdentidad.trim().isEmpty()) {
+                        saveFingerprint(carnetIdentidad, regMin1);
+                    }
+                } else
                     this.jLabelStatus.setText("Registro Fallado, Matching Score: " + matchScore[0]);
 
             } else
@@ -752,28 +804,69 @@ public class JSGD extends javax.swing.JFrame {
 
     }// GEN-LAST:event_jButtonCaptureR1ActionPerformed
 
-    private void jButtonCaptureActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButtonCaptureActionPerformed
-        int[] quality = new int[1];
-        long nfiqvalue;
-        BufferedImage img1gray = new BufferedImage(deviceInfo.imageWidth, deviceInfo.imageHeight,
-                BufferedImage.TYPE_BYTE_GRAY);
-        byte[] imageBuffer1 = ((java.awt.image.DataBufferByte) img1gray.getRaster().getDataBuffer()).getData();
-        if (fplib != null) {
-            ret = fplib.GetImageEx(imageBuffer1, jSliderSeconds.getValue() * 1000, 0, jSliderQuality.getValue());
-            if (ret == SGFDxErrorCode.SGFDX_ERROR_NONE) {
-                this.jLabelImage.setIcon(new ImageIcon(img1gray));
-                long ret2 = fplib.GetImageQuality(deviceInfo.imageWidth, deviceInfo.imageHeight, imageBuffer1, quality);
-                nfiqvalue = fplib.ComputeNFIQ(imageBuffer1, deviceInfo.imageWidth, deviceInfo.imageHeight);
-                this.jLabelStatus.setText("getImage() Success [" + ret + "] --- Image Quality [" + quality[0]
-                        + "] --- NFIQ Value [" + nfiqvalue + "]");
-            } else {
-                this.jLabelStatus.setText("GetImageEx() Error [" + ret + "]");
+    private void jButtonCaptureActionPerformed(java.awt.event.ActionEvent evt) {
+    if (fplib == null) {
+        this.jLabelStatus.setText("JSGFPLib no está inicializado");
+        return;
+    }
+
+    // 1. Capturar la imagen de la huella
+    BufferedImage img1gray = new BufferedImage(deviceInfo.imageWidth, deviceInfo.imageHeight, BufferedImage.TYPE_BYTE_GRAY);
+    byte[] imageBuffer1 = ((java.awt.image.DataBufferByte) img1gray.getRaster().getDataBuffer()).getData();
+    long iError = fplib.GetImageEx(imageBuffer1, jSliderSeconds.getValue() * 1000, 0, jSliderQuality.getValue());
+
+    if (iError != SGFDxErrorCode.SGFDX_ERROR_NONE) {
+        this.jLabelStatus.setText("Error al capturar la imagen: " + iError);
+        return;
+    }
+    this.jLabelImage.setIcon(new ImageIcon(img1gray));
+
+    // 2. Crear la plantilla de la huella capturada
+    byte[] capturedTemplate = new byte[400];
+    SGFingerInfo fingerInfo = new SGFingerInfo();
+    fingerInfo.FingerNumber = SGFingerPosition.SG_FINGPOS_LI;
+    fingerInfo.ImpressionType = SGImpressionType.SG_IMPTYPE_LP;
+    fingerInfo.ViewNumber = 1;
+    
+    iError = fplib.CreateTemplate(fingerInfo, imageBuffer1, capturedTemplate);
+    if (iError != SGFDxErrorCode.SGFDX_ERROR_NONE) {
+        this.jLabelStatus.setText("Error al crear la plantilla: " + iError);
+        return;
+    }
+
+    // 3. Verificar la huella en la base de datos
+    boolean[] matched = new boolean[1];
+    long secuLevel = (long) (this.jComboBoxVerifySecurityLevel.getSelectedIndex() + 1);
+    String sql = "SELECT id, nombre, apellidos, carnet_identidad, huella_dactilar, NOW() as fecha_hora_servidor FROM trabajadores WHERE huella_dactilar IS NOT NULL";
+    
+    try (PreparedStatement pstmt = dbConnection.prepareStatement(sql); ResultSet rs = pstmt.executeQuery()) {
+        boolean fingerMatched = false;
+        while (rs.next()) {
+            String encodedTemplate = rs.getString("huella_dactilar");
+            if (encodedTemplate != null && !encodedTemplate.isEmpty()) {
+                byte[] dbTemplate = Base64.getDecoder().decode(encodedTemplate);
+                iError = fplib.MatchTemplate(dbTemplate, capturedTemplate, secuLevel, matched);
+
+                if (iError == SGFDxErrorCode.SGFDX_ERROR_NONE && matched[0]) {
+                    String nombre = rs.getString("nombre");
+                    String apellidos = rs.getString("apellidos");
+                    String carnet = rs.getString("carnet_identidad");
+                    String fechaHora = rs.getString("fecha_hora_servidor");
+                    this.jLabelStatus.setText("Huella encontrada: " + nombre + " " + apellidos + " | CI: " + carnet + " | Fecha/Hora: " + fechaHora);
+                    fingerMatched = true;
+                    break; 
+                }
             }
-        } else {
-            this.jLabelStatus.setText("JSGFPLib is not Initialized");
         }
 
-    }// GEN-LAST:event_jButtonCaptureActionPerformed
+        if (!fingerMatched) {
+            this.jLabelStatus.setText("Huella no encontrada en la base de datos.");
+        }
+
+    } catch (SQLException e) {
+        this.jLabelStatus.setText("Error al verificar en la base de datos: " + e.getMessage());
+    }
+}
 
     private void jButtonToggleLEDActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButtonToggleLEDActionPerformed
         if (fplib != null) {
@@ -889,6 +982,7 @@ public class JSGD extends javax.swing.JFrame {
 
     /** Exit the Application */
     private void exitForm(java.awt.event.WindowEvent evt) {// GEN-FIRST:event_exitForm
+        disconnectFromDatabase();
         System.exit(0);
     }// GEN-LAST:event_exitForm
 
@@ -897,6 +991,28 @@ public class JSGD extends javax.swing.JFrame {
      */
     public static void main(String args[]) {
         new JSGD().setVisible(true);
+    }
+
+    private void saveFingerprint(String carnetIdentidad, byte[] fingerprintTemplate) {
+        if (dbConnection == null) {
+            jLabelStatus.setText("Error: No hay conexión con la base de datos.");
+            return;
+        }
+        String encodedTemplate = Base64.getEncoder().encodeToString(fingerprintTemplate);
+        String sql = "UPDATE trabajadores SET huella_dactilar = ? WHERE carnet_identidad = ?";
+
+        try (PreparedStatement pstmt = dbConnection.prepareStatement(sql)) {
+            pstmt.setString(1, encodedTemplate);
+            pstmt.setString(2, carnetIdentidad);
+            int affectedRows = pstmt.executeUpdate();
+            if (affectedRows > 0) {
+                jLabelStatus.setText("Huella dactilar guardada para el trabajador con carnet: " + carnetIdentidad);
+            } else {
+                jLabelStatus.setText("No se encontró un trabajador con el carnet: " + carnetIdentidad);
+            }
+        } catch (SQLException e) {
+            jLabelStatus.setText("Error al guardar la huella dactilar: " + e.getMessage());
+        }
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
