@@ -16,6 +16,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Base64;
+import java.util.Calendar;
 
 /**
  *
@@ -57,6 +58,15 @@ public class JSGD extends javax.swing.JFrame {
         this.jComboBoxRegisterSecurityLevel.setSelectedIndex(4);
         this.jComboBoxVerifySecurityLevel.setSelectedIndex(4);
         connectToDatabase();
+        
+        // Set default value for jComboBoxRegistro based on time
+        Calendar cal = Calendar.getInstance();
+        int hour = cal.get(Calendar.HOUR_OF_DAY);
+        if (hour < 13) {
+            jComboBoxRegistro.setSelectedItem("Entrada");
+        } else {
+            jComboBoxRegistro.setSelectedItem("Salida");
+        }
     }
 
     private void connectToDatabase() {
@@ -223,7 +233,19 @@ public class JSGD extends javax.swing.JFrame {
         jComboBoxUSBPort.setMaximumSize(new java.awt.Dimension(170, 27));
         jComboBoxUSBPort.setMinimumSize(new java.awt.Dimension(170, 27));
         jComboBoxUSBPort.setPreferredSize(new java.awt.Dimension(170, 27));
-        jPanelImage.add(jComboBoxUSBPort, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 90, 170, 27));
+        jPanelImage.add(jComboBoxUSBPort, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 60, 170, 27));
+
+        jLabelRegistro = new javax.swing.JLabel();
+        jComboBoxRegistro = new javax.swing.JComboBox();
+        
+        jLabelRegistro.setText("Registro");
+        jPanelImage.add(jLabelRegistro, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 90, -1, -1));
+        
+        jComboBoxRegistro.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Entrada", "Salida" }));
+        jComboBoxRegistro.setMaximumSize(new java.awt.Dimension(170, 27));
+        jComboBoxRegistro.setMinimumSize(new java.awt.Dimension(170, 27));
+        jComboBoxRegistro.setPreferredSize(new java.awt.Dimension(170, 27));
+        jPanelImage.add(jComboBoxRegistro, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 110, 170, 27));
 
         jButtonToggleLED.setText("LED");
         jButtonToggleLED.setMaximumSize(new java.awt.Dimension(100, 30));
@@ -259,7 +281,7 @@ public class JSGD extends javax.swing.JFrame {
         jPanelImage.add(jButtonConfig, new org.netbeans.lib.awtextra.AbsoluteConstraints(310, 10, -1, 30));
 
         jLabel1.setText("Dispositivo USB");
-        jPanelImage.add(jLabel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 70, -1, -1));
+        jPanelImage.add(jLabel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 40, -1, -1));
 
         jSliderQuality.setMajorTickSpacing(10);
         jSliderQuality.setMinorTickSpacing(5);
@@ -852,7 +874,9 @@ public class JSGD extends javax.swing.JFrame {
                     String apellidos = rs.getString("apellidos");
                     String carnet = rs.getString("carnet_identidad");
                     String fechaHora = rs.getString("fecha_hora_servidor");
-                    this.jLabelStatus.setText("Huella encontrada: " + nombre + " " + apellidos + " | CI: " + carnet + " | Fecha/Hora: " + fechaHora);
+                    String tipoRegistro = (String) jComboBoxRegistro.getSelectedItem();
+                    String etiquetaFecha = "Fecha/Hora " + tipoRegistro + ":";
+                    this.jLabelStatus.setText("Huella encontrada: " + nombre + " " + apellidos + " | CI: " + carnet + " | " + etiquetaFecha + " " + fechaHora);
                     fingerMatched = true;
                     break; 
                 }
@@ -1031,7 +1055,9 @@ public class JSGD extends javax.swing.JFrame {
     private javax.swing.JComboBox jComboBoxRegisterSecurityLevel;
     private javax.swing.JComboBox jComboBoxUSBPort;
     private javax.swing.JComboBox jComboBoxVerifySecurityLevel;
+    private javax.swing.JComboBox jComboBoxRegistro;
     private javax.swing.JLabel jLabel1;
+    private javax.swing.JLabel jLabelRegistro;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabelBrightness;
