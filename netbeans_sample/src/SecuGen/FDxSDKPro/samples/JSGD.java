@@ -112,7 +112,6 @@ public class JSGD extends javax.swing.JFrame {
         this.jButtonRegister.setEnabled(false);
         this.jButtonVerify.setEnabled(false);
         this.jButtonGetDeviceInfo.setEnabled(false);
-        this.jButtonConfig.setEnabled(false);
         this.jButtonClose.setEnabled(false);
         this.jButtonInit.setEnabled(true);
     }
@@ -124,7 +123,6 @@ public class JSGD extends javax.swing.JFrame {
         this.jButtonCaptureR2.setEnabled(true);
         this.jButtonCaptureV1.setEnabled(true);
         this.jButtonGetDeviceInfo.setEnabled(true);
-        this.jButtonConfig.setEnabled(true);
         this.jButtonClose.setEnabled(true);
         this.jButtonInit.setEnabled(false);
     }
@@ -153,7 +151,6 @@ public class JSGD extends javax.swing.JFrame {
         jLabelImage = new javax.swing.JLabel();
         jButtonToggleLED = new javax.swing.JButton();
         jButtonCapture = new javax.swing.JButton();
-        jButtonConfig = new javax.swing.JButton();
         jSliderQuality = new javax.swing.JSlider();
         jLabel2 = new javax.swing.JLabel();
         jLabel3 = new javax.swing.JLabel();
@@ -216,7 +213,7 @@ public class JSGD extends javax.swing.JFrame {
                 jButtonInitActionPerformed(evt);
             }
         });
-        jPanelImage.add(jButtonInit, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 10, 100, 30));
+        jPanelImage.add(jButtonInit, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 10, 125, 30));
 
         jLabelImage.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.LOWERED));
         jLabelImage.setMinimumSize(new java.awt.Dimension(260, 300));
@@ -241,7 +238,7 @@ public class JSGD extends javax.swing.JFrame {
                 jButtonToggleLEDActionPerformed(evt);
             }
         });
-        jPanelImage.add(jButtonToggleLED, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 10, 100, 30));
+        jPanelImage.add(jButtonToggleLED, new org.netbeans.lib.awtextra.AbsoluteConstraints(135, 10, 125, 30));
 
         jButtonCapture.setText("Capturar");
         jButtonCapture.setMaximumSize(new java.awt.Dimension(100, 30));
@@ -252,18 +249,8 @@ public class JSGD extends javax.swing.JFrame {
                 jButtonCaptureActionPerformed(evt);
             }
         });
-        jPanelImage.add(jButtonCapture, new org.netbeans.lib.awtextra.AbsoluteConstraints(210, 10, 100, 30));
+        jPanelImage.add(jButtonCapture, new org.netbeans.lib.awtextra.AbsoluteConstraints(260, 10, 125, 30));
 
-        jButtonConfig.setText("Configuración");
-        jButtonConfig.setMaximumSize(new java.awt.Dimension(100, 30));
-        jButtonConfig.setMinimumSize(new java.awt.Dimension(100, 30));
-        jButtonConfig.setPreferredSize(new java.awt.Dimension(100, 30));
-        jButtonConfig.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButtonConfigActionPerformed(evt);
-            }
-        });
-        jPanelImage.add(jButtonConfig, new org.netbeans.lib.awtextra.AbsoluteConstraints(310, 10, -1, 30));
 
         jSliderQuality.setMajorTickSpacing(10);
         jSliderQuality.setMinorTickSpacing(5);
@@ -293,7 +280,7 @@ public class JSGD extends javax.swing.JFrame {
                 jButtonCloseActionPerformed(evt);
             }
         });
-        jPanelImage.add(jButtonClose, new org.netbeans.lib.awtextra.AbsoluteConstraints(410, 10, 80, 30));
+        jPanelImage.add(jButtonClose, new org.netbeans.lib.awtextra.AbsoluteConstraints(385, 10, 105, 30));
         jButtonClose.getAccessibleContext().setAccessibleName("jButtonClose");
 
         jTabbedPane1.addTab("Inicio", jPanelImage);
@@ -547,19 +534,6 @@ public class JSGD extends javax.swing.JFrame {
             jLabelStatus.setText("Error al consultar la base de datos: " + e.getMessage());
         }
     }// GEN-LAST:event_jButtonGetDeviceInfoActionPerformed
-
-    private void jButtonConfigActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButtonConfigActionPerformed
-        long iError;
-
-        iError = fplib.Configure(0);
-        if (iError == SGFDxErrorCode.SGFDX_ERROR_NONE) {
-            this.jLabelStatus.setText("Configure() Success");
-        } else if (iError == SGFDxErrorCode.SGFDX_ERROR_NOT_USED)
-            this.jLabelStatus.setText("Configure() not supported on this platform");
-        else
-            this.jLabelStatus.setText("Configure() Error : " + iError);
-
-    }// GEN-LAST:event_jButtonConfigActionPerformed
 
     private void jButtonVerifyActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButtonVerifyActionPerformed
         long secuLevel = (long) (this.jComboBoxVerifySecurityLevel.getSelectedIndex() + 1);
@@ -1078,7 +1052,6 @@ public class JSGD extends javax.swing.JFrame {
     private javax.swing.JButton jButtonCaptureR2;
     private javax.swing.JButton jButtonCaptureV1;
     private javax.swing.JButton jButtonClose;
-    private javax.swing.JButton jButtonConfig;
     private javax.swing.JButton jButtonGetDeviceInfo;
     private javax.swing.JButton jButtonInit;
     private javax.swing.JButton jButtonRegister;
