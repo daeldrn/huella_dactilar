@@ -300,14 +300,14 @@ public class JSGD extends javax.swing.JFrame {
 
         jPanelRegisterVerify.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
-        jLabelSecurityLevel.setBorder(javax.swing.BorderFactory.createTitledBorder("Nivel de Seguridad"));
+        jLabelSecurityLevel.setBorder(javax.swing.BorderFactory.createTitledBorder(" Nivel de Seguridad  "));
         jPanelRegisterVerify.add(jLabelSecurityLevel,
                 new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 10, 460, 60));
 
-        jLabelRegistration.setText("Registro");
+        jLabelRegistration.setText("Registro:");
         jPanelRegisterVerify.add(jLabelRegistration, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 34, -1, -1));
 
-        jLabelVerification.setText("Verificación");
+        jLabelVerification.setText("Verificación:");
         jPanelRegisterVerify.add(jLabelVerification,
                 new org.netbeans.lib.awtextra.AbsoluteConstraints(250, 34, -1, -1));
 
@@ -321,7 +321,7 @@ public class JSGD extends javax.swing.JFrame {
         jPanelRegisterVerify.add(jComboBoxVerifySecurityLevel,
                 new org.netbeans.lib.awtextra.AbsoluteConstraints(325, 30, 130, -1));
 
-        jLabelRegistrationBox.setBorder(javax.swing.BorderFactory.createTitledBorder("Registration"));
+        jLabelRegistrationBox.setBorder(javax.swing.BorderFactory.createTitledBorder("  Registro  "));
         jPanelRegisterVerify.add(jLabelRegistrationBox,
                 new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 80, 290, 240));
 
@@ -339,7 +339,7 @@ public class JSGD extends javax.swing.JFrame {
         jPanelRegisterVerify.add(jLabelRegisterImage2,
                 new org.netbeans.lib.awtextra.AbsoluteConstraints(160, 100, -1, -1));
 
-        jLabelVerificationBox.setBorder(javax.swing.BorderFactory.createTitledBorder("Verification"));
+        jLabelVerificationBox.setBorder(javax.swing.BorderFactory.createTitledBorder("  Verificación  "));
         jPanelRegisterVerify.add(jLabelVerificationBox,
                 new org.netbeans.lib.awtextra.AbsoluteConstraints(320, 80, 150, 240));
 
