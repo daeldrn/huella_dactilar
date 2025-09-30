@@ -8,8 +8,12 @@ package SecuGen.FDxSDKPro.samples;
 
 import SecuGen.FDxSDKPro.jni.*;
 import java.awt.*;
+import java.awt.MediaTracker;
 import java.awt.image.*;
 import javax.swing.*;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import javax.imageio.ImageIO;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -811,7 +815,7 @@ public class JSGD extends javax.swing.JFrame {
         // 3. Verificar la huella en la base de datos
         boolean[] matched = new boolean[1];
         long secuLevel = (long) (this.jComboBoxVerifySecurityLevel.getSelectedIndex() + 1);
-        String sql = "SELECT id, nombre, apellidos, carnet_identidad, huella_dactilar, NOW() as fecha_hora_servidor FROM trabajadores WHERE huella_dactilar IS NOT NULL";
+        String sql = "SELECT id, nombre, apellidos, carnet_identidad, huella_dactilar, foto, NOW() as fecha_hora_servidor FROM trabajadores WHERE huella_dactilar IS NOT NULL";
 
         try (PreparedStatement pstmt = dbConnection.prepareStatement(sql); ResultSet rs = pstmt.executeQuery()) {
             boolean fingerMatched = false;
@@ -827,16 +831,50 @@ public class JSGD extends javax.swing.JFrame {
                         String apellidos = rs.getString("apellidos");
                         String carnet = rs.getString("carnet_identidad");
                         String fechaHora = rs.getString("fecha_hora_servidor");
+                        byte[] fotoBytes = rs.getBytes("foto");
                         String tipoRegistro = (String) jComboBoxRegistro.getSelectedItem();
                         String etiquetaFecha = "Fecha/Hora " + tipoRegistro;
                         String mensajeAsistencia = registrarAsistencia(trabajadorId, tipoRegistro);
 
+                        // Panel para mostrar la información y la foto
+                        JPanel panel = new JPanel(new BorderLayout(15, 15));
+                        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+                        // Etiqueta para la foto
+                        JLabel fotoLabel = new JLabel();
+                        if (fotoBytes != null && fotoBytes.length > 0) {
+                            try {
+                                BufferedImage img = ImageIO.read(new ByteArrayInputStream(fotoBytes));
+                                if (img != null) {
+                                    Image scaledImg = img.getScaledInstance(100, 100, Image.SCALE_SMOOTH);
+                                    fotoLabel.setIcon(new ImageIcon(scaledImg));
+                                } else {
+                                    fotoLabel.setText("Formato no soportado");
+                                }
+                            } catch (IOException e) {
+                                fotoLabel.setText("Error al leer imagen");
+                            }
+                        } else {
+                            fotoLabel.setText("No hay foto");
+                        }
+
+                        // Configuración común para la etiqueta de la foto si no hay imagen
+                        if (fotoLabel.getIcon() == null) {
+                            fotoLabel.setPreferredSize(new Dimension(100, 100));
+                            fotoLabel.setHorizontalAlignment(JLabel.CENTER);
+                            fotoLabel.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+                        }
+                        panel.add(fotoLabel, BorderLayout.WEST);
+
+                        // Etiqueta para la información del trabajador
                         String mensajeCompleto = "<html><b>Trabajador:</b> " + nombre + " " + apellidos + "<br>" +
                                 "<b>Carnet de Identidad:</b> " + carnet + "<br>" +
                                 "<b>" + etiquetaFecha + ":</b> " + fechaHora + "<br>" +
                                 "<b>Registro:</b> " + mensajeAsistencia + "</html>";
+                        JLabel infoLabel = new JLabel(mensajeCompleto);
+                        panel.add(infoLabel, BorderLayout.CENTER);
 
-                        JOptionPane.showMessageDialog(this, mensajeCompleto, "Confirmación de Registro",
+                        JOptionPane.showMessageDialog(this, panel, "Confirmación de Registro",
                                 JOptionPane.INFORMATION_MESSAGE);
                         this.jLabelStatus
                                 .setText("Verificación correcta. " + mensajeAsistencia);
