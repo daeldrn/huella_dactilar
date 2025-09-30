@@ -147,11 +147,9 @@ public class JSGD extends javax.swing.JFrame {
         jPanelImage = new javax.swing.JPanel();
         jButtonInit = new javax.swing.JButton();
         jLabelImage = new javax.swing.JLabel();
-        jComboBoxUSBPort = new javax.swing.JComboBox();
         jButtonToggleLED = new javax.swing.JButton();
         jButtonCapture = new javax.swing.JButton();
         jButtonConfig = new javax.swing.JButton();
-        jLabel1 = new javax.swing.JLabel();
         jSliderQuality = new javax.swing.JSlider();
         jLabel2 = new javax.swing.JLabel();
         jLabel3 = new javax.swing.JLabel();
@@ -221,13 +219,6 @@ public class JSGD extends javax.swing.JFrame {
         jLabelImage.setPreferredSize(new java.awt.Dimension(260, 300));
         jPanelImage.add(jLabelImage, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 60, -1, -1));
 
-        jComboBoxUSBPort.setModel(new javax.swing.DefaultComboBoxModel(
-                new String[] { "AUTO_DETECT", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9" }));
-        jComboBoxUSBPort.setMaximumSize(new java.awt.Dimension(170, 27));
-        jComboBoxUSBPort.setMinimumSize(new java.awt.Dimension(170, 27));
-        jComboBoxUSBPort.setPreferredSize(new java.awt.Dimension(170, 27));
-        jPanelImage.add(jComboBoxUSBPort, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 110, 170, 27));
-
         jLabelRegistro.setText("Registro");
         jPanelImage.add(jLabelRegistro, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 140, -1, -1));
 
@@ -269,9 +260,6 @@ public class JSGD extends javax.swing.JFrame {
             }
         });
         jPanelImage.add(jButtonConfig, new org.netbeans.lib.awtextra.AbsoluteConstraints(310, 10, -1, 30));
-
-        jLabel1.setText("Dispositivo USB");
-        jPanelImage.add(jLabel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 90, -1, -1));
 
         jSliderQuality.setMajorTickSpacing(10);
         jSliderQuality.setMinorTickSpacing(5);
@@ -990,20 +978,6 @@ public class JSGD extends javax.swing.JFrame {
         if ((fplib != null) && (ret == SGFDxErrorCode.SGFDX_ERROR_NONE)) {
             this.jLabelStatus.setText("JSGFPLib Inicializado Exitosamente");
             this.devicePort = SGPPPortAddr.AUTO_DETECT;
-            switch (this.jComboBoxUSBPort.getSelectedIndex()) {
-                case 1:
-                case 2:
-                case 3:
-                case 4:
-                case 5:
-                case 6:
-                case 7:
-                case 8:
-                case 9:
-                case 10:
-                    this.devicePort = this.jComboBoxUSBPort.getSelectedIndex() - 1;
-                    break;
-            }
             ret = fplib.OpenDevice(this.devicePort);
             if (ret == SGFDxErrorCode.SGFDX_ERROR_NONE) {
                 this.jLabelStatus.setText("OpenDevice() Exitoso [" + ret + "]");
@@ -1074,10 +1048,8 @@ public class JSGD extends javax.swing.JFrame {
     private javax.swing.JButton jButtonVerify;
     private javax.swing.JComboBox jComboBoxDeviceName;
     private javax.swing.JComboBox jComboBoxRegisterSecurityLevel;
-    private javax.swing.JComboBox jComboBoxUSBPort;
     private javax.swing.JComboBox jComboBoxVerifySecurityLevel;
     private javax.swing.JComboBox jComboBoxRegistro;
-    private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabelCarnet;

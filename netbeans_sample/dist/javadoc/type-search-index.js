@@ -1,0 +1,1 @@
+typeSearchIndex = [{"l":"All Classes and Interfaces","u":"allclasses-index.html","k":"18"},{"p":"SecuGen.FDxSDKPro.samples","l":"JSGD"},{"p":"applet","l":"JSGDApplet"},{"p":"SecuGen.FDxSDKPro.samples","l":"JSGFPLibTest"},{"p":"SecuGen.FDxSDKPro.samples","l":"JSGMultiDeviceTest"}];updateSearchResults();
