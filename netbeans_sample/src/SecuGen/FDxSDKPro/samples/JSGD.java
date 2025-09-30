@@ -220,13 +220,13 @@ public class JSGD extends javax.swing.JFrame {
         jPanelImage.add(jLabelImage, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 60, -1, -1));
 
         jLabelRegistro.setText("Registro");
-        jPanelImage.add(jLabelRegistro, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 140, -1, -1));
+        jPanelImage.add(jLabelRegistro, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 90, -1, -1));
 
         jComboBoxRegistro.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Entrada", "Salida" }));
         jComboBoxRegistro.setMaximumSize(new java.awt.Dimension(170, 27));
         jComboBoxRegistro.setMinimumSize(new java.awt.Dimension(170, 27));
         jComboBoxRegistro.setPreferredSize(new java.awt.Dimension(170, 27));
-        jPanelImage.add(jComboBoxRegistro, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 160, 170, 27));
+        jPanelImage.add(jComboBoxRegistro, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 110, 170, 27));
 
         jButtonToggleLED.setText("LED");
         jButtonToggleLED.setMaximumSize(new java.awt.Dimension(100, 30));
@@ -267,13 +267,13 @@ public class JSGD extends javax.swing.JFrame {
         jSliderQuality.setPaintTicks(true);
         jSliderQuality.setName(""); // NOI18N
         jSliderQuality.setOpaque(false);
-        jPanelImage.add(jSliderQuality, new org.netbeans.lib.awtextra.AbsoluteConstraints(270, 220, 220, -1));
+        jPanelImage.add(jSliderQuality, new org.netbeans.lib.awtextra.AbsoluteConstraints(270, 170, 220, -1));
 
         jLabel2.setText("Calidad de Imagen");
-        jPanelImage.add(jLabel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 200, -1, -1));
+        jPanelImage.add(jLabel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 150, -1, -1));
 
         jLabel3.setText("Tiempo de espera (segundos)");
-        jPanelImage.add(jLabel3, new org.netbeans.lib.awtextra.AbsoluteConstraints(290, 280, -1, -1));
+        jPanelImage.add(jLabel3, new org.netbeans.lib.awtextra.AbsoluteConstraints(290, 230, -1, -1));
 
         jSliderSeconds.setMajorTickSpacing(1);
         jSliderSeconds.setMaximum(10);
@@ -281,7 +281,7 @@ public class JSGD extends javax.swing.JFrame {
         jSliderSeconds.setPaintLabels(true);
         jSliderSeconds.setPaintTicks(true);
         jSliderSeconds.setValue(5);
-        jPanelImage.add(jSliderSeconds, new org.netbeans.lib.awtextra.AbsoluteConstraints(270, 300, 220, -1));
+        jPanelImage.add(jSliderSeconds, new org.netbeans.lib.awtextra.AbsoluteConstraints(270, 250, 220, -1));
 
         jButtonClose.setText("Cerrar");
         jButtonClose.addActionListener(new java.awt.event.ActionListener() {
