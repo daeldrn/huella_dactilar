@@ -540,7 +540,7 @@ public class JSGD extends javax.swing.JFrame {
         long secuLevel = (long) (this.jComboBoxVerifySecurityLevel.getSelectedIndex() + 1);
         boolean[] matched = new boolean[1];
 
-        String sql = "SELECT id, nombre, apellidos, huella_dactilar FROM trabajadores WHERE huella_dactilar IS NOT NULL";
+        String sql = "SELECT id, nombre, apellidos, carnet_identidad, huella_dactilar FROM trabajadores WHERE huella_dactilar IS NOT NULL";
         try (PreparedStatement pstmt = dbConnection.prepareStatement(sql);
                 ResultSet rs = pstmt.executeQuery()) {
 
@@ -553,7 +553,10 @@ public class JSGD extends javax.swing.JFrame {
                     long iError = fplib.MatchTemplate(dbTemplate, vrfMin, secuLevel, matched);
 
                     if (iError == SGFDxErrorCode.SGFDX_ERROR_NONE && matched[0]) {
-                        this.jLabelStatus.setText("Verificación Exitosa.");
+                        String nombre = rs.getString("nombre");
+                        String apellidos = rs.getString("apellidos");
+                        String carnet = rs.getString("carnet_identidad");
+                        this.jLabelStatus.setText("Verificación Exitosa para: " + nombre + " " + apellidos + " (CI: " + carnet + ")");
                         fingerMatched = true;
                         break;
                     }
@@ -563,7 +566,6 @@ public class JSGD extends javax.swing.JFrame {
             if (!fingerMatched) {
                 this.jLabelStatus.setText("Fallo de Verificación. Huella no encontrada.");
             }
-
         } catch (SQLException e) {
             this.jLabelStatus.setText("Error al verificar la huella dactilar: " + e.getMessage());
         }
