@@ -55,9 +55,9 @@ public class JSGD extends javax.swing.JFrame {
     private static int MAXIMUM_NFIQ = 2; // User defined
 
     // Database connection details
-    private static final String DB_URL = "jdbc:mariadb://192.168.8.7:3306/mb_recursos_humanos";
-    private static final String DB_USER = "rrhh_dev";
-    private static final String DB_PASSWORD = "rrhh_dev_test";
+    private static final String DB_URL = "jdbc:mariadb://212.104.172.216:13306/mb_recursos_humanos";
+    private static final String DB_USER = "allnovu-team";
+    private static final String DB_PASSWORD = "Clave123!*";
     private Connection dbConnection;
 
     /** Creates new form JSGD */
@@ -251,7 +251,6 @@ public class JSGD extends javax.swing.JFrame {
             }
         });
         jPanelImage.add(jButtonCapture, new org.netbeans.lib.awtextra.AbsoluteConstraints(260, 10, 125, 30));
-
 
         jSliderQuality.setMajorTickSpacing(10);
         jSliderQuality.setMinorTickSpacing(5);
@@ -556,7 +555,8 @@ public class JSGD extends javax.swing.JFrame {
                         String nombre = rs.getString("nombre");
                         String apellidos = rs.getString("apellidos");
                         String carnet = rs.getString("carnet_identidad");
-                        this.jLabelStatus.setText("Verificación Exitosa para: " + nombre + " " + apellidos + " (CI: " + carnet + ")");
+                        this.jLabelStatus.setText(
+                                "Verificación Exitosa para: " + nombre + " " + apellidos + " (CI: " + carnet + ")");
                         fingerMatched = true;
                         break;
                     }
