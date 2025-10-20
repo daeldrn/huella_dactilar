@@ -14,6 +14,7 @@ import javax.swing.*;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import javax.imageio.ImageIO;
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -805,7 +806,7 @@ public class JSGD extends javax.swing.JFrame {
                         String apellidos = rs.getString("apellidos");
                         String carnet = rs.getString("carnet_identidad");
                         String fechaHora = rs.getString("fecha_hora_servidor");
-                        byte[] fotoBytes = rs.getBytes("foto");
+                        String fotoPath = rs.getString("foto");
                         String tipoRegistro = (String) jComboBoxRegistro.getSelectedItem();
                         String etiquetaFecha = "Fecha/Hora " + tipoRegistro;
                         String mensajeAsistencia = registrarAsistencia(trabajadorId, tipoRegistro);
@@ -816,17 +817,18 @@ public class JSGD extends javax.swing.JFrame {
 
                         // Etiqueta para la foto
                         JLabel fotoLabel = new JLabel();
-                        if (fotoBytes != null && fotoBytes.length > 0) {
+                        if (fotoPath != null && !fotoPath.trim().isEmpty()) {
                             try {
-                                BufferedImage img = ImageIO.read(new ByteArrayInputStream(fotoBytes));
+                                URL imageUrl = new URL("http://192.168.8.7/" + fotoPath);
+                                BufferedImage img = ImageIO.read(imageUrl);
                                 if (img != null) {
                                     Image scaledImg = img.getScaledInstance(100, 100, Image.SCALE_SMOOTH);
                                     fotoLabel.setIcon(new ImageIcon(scaledImg));
                                 } else {
-                                    fotoLabel.setText("Formato no soportado");
+                                    fotoLabel.setText("No se pudo cargar la foto");
                                 }
                             } catch (IOException e) {
-                                fotoLabel.setText("Error al leer imagen");
+                                fotoLabel.setText("Error de red o URL");
                             }
                         } else {
                             fotoLabel.setText("No hay foto");
