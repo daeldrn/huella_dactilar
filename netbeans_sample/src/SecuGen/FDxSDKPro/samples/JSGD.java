@@ -821,7 +821,7 @@ public class JSGD extends javax.swing.JFrame {
                         JLabel fotoLabel = new JLabel();
                         if (fotoPath != null && !fotoPath.trim().isEmpty()) {
                             try {
-                                URL imageUrl = new URL("http://192.168.8.7/" + fotoPath);
+                                URL imageUrl = new URL("http://212.104.172.216/" + fotoPath);
                                 BufferedImage img = ImageIO.read(imageUrl);
                                 if (img != null) {
                                     Image scaledImg = img.getScaledInstance(100, 100, Image.SCALE_SMOOTH);
