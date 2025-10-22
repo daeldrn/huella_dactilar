@@ -808,7 +808,7 @@ public class JSGD extends javax.swing.JFrame {
                         String apellidos = rs.getString("apellidos");
                         String carnet = rs.getString("carnet_identidad");
                         String fechaHora = rs.getString("fecha_hora_servidor");
-                        String fotoPath = rs.getString("foto");
+                        byte[] fotoBytes = rs.getBytes("foto");
                         String tipoRegistro = (String) jComboBoxRegistro.getSelectedItem();
                         String etiquetaFecha = "Fecha/Hora " + tipoRegistro;
                         String mensajeAsistencia = registrarAsistencia(trabajadorId, tipoRegistro);
@@ -819,10 +819,10 @@ public class JSGD extends javax.swing.JFrame {
 
                         // Etiqueta para la foto
                         JLabel fotoLabel = new JLabel();
-                        if (fotoPath != null && !fotoPath.trim().isEmpty()) {
+                        if (fotoBytes != null && fotoBytes.length > 0) {
                             try {
-                                URL imageUrl = new URL("http://212.104.172.216/" + fotoPath);
-                                BufferedImage img = ImageIO.read(imageUrl);
+                                ByteArrayInputStream bis = new ByteArrayInputStream(fotoBytes);
+                                BufferedImage img = ImageIO.read(bis);
                                 if (img != null) {
                                     Image scaledImg = img.getScaledInstance(100, 100, Image.SCALE_SMOOTH);
                                     fotoLabel.setIcon(new ImageIcon(scaledImg));
@@ -830,7 +830,7 @@ public class JSGD extends javax.swing.JFrame {
                                     fotoLabel.setText("No se pudo cargar la foto");
                                 }
                             } catch (IOException e) {
-                                fotoLabel.setText("Error de red o URL");
+                                fotoLabel.setText("Error al procesar la imagen");
                             }
                         } else {
                             fotoLabel.setText("No hay foto");
@@ -920,16 +920,14 @@ public class JSGD extends javax.swing.JFrame {
                     }
                 }
             } else { // No record for today, insert new
-                String insertSql = "INSERT INTO registro_asistencia (trabajador_id, fecha, hora_entrada, hora_salida) VALUES (?, CURDATE(), ?, ?)";
+                String insertSql;
+                if (tipoRegistro.equals("Entrada")) {
+                    insertSql = "INSERT INTO registro_asistencia (trabajador_id, fecha, hora_entrada) VALUES (?, CURDATE(), CURTIME())";
+                } else { // Salida
+                    insertSql = "INSERT INTO registro_asistencia (trabajador_id, fecha, hora_salida) VALUES (?, CURDATE(), CURTIME())";
+                }
                 try (PreparedStatement insertPstmt = dbConnection.prepareStatement(insertSql)) {
                     insertPstmt.setInt(1, trabajadorId);
-                    if (tipoRegistro.equals("Entrada")) {
-                        insertPstmt.setTime(2, new java.sql.Time(System.currentTimeMillis()));
-                        insertPstmt.setNull(3, java.sql.Types.TIME);
-                    } else { // Salida
-                        insertPstmt.setNull(2, java.sql.Types.TIME);
-                        insertPstmt.setTime(3, new java.sql.Time(System.currentTimeMillis()));
-                    }
                     insertPstmt.executeUpdate();
                     return tipoRegistro + " registrada exitosamente.";
                 }
