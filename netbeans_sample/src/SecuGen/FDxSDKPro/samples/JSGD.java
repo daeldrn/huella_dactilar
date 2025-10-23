@@ -67,7 +67,6 @@ public class JSGD extends javax.swing.JFrame {
         disableControls();
         this.jComboBoxRegisterSecurityLevel.setSelectedIndex(4);
         this.jComboBoxVerifySecurityLevel.setSelectedIndex(4);
-        connectToDatabase();
 
         // Set default value for jComboBoxRegistro based on time
         Calendar cal = Calendar.getInstance();
@@ -79,19 +78,16 @@ public class JSGD extends javax.swing.JFrame {
         }
     }
 
-    private void connectToDatabase() {
-        try {
-            Class.forName("org.mariadb.jdbc.Driver");
-            dbConnection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
-            if (dbConnection != null) {
-                jLabelStatus.setText("Conexión a la base de datos exitosa.");
+    private Connection getDBConnection() throws SQLException {
+        if (dbConnection == null || dbConnection.isClosed()) {
+            try {
+                Class.forName("org.mariadb.jdbc.Driver");
+                dbConnection = DriverManager.getConnection(DB_URL, DB_USER, DB_PASSWORD);
+            } catch (ClassNotFoundException e) {
+                throw new SQLException("MariaDB JDBC Driver not found.", e);
             }
-        } catch (ClassNotFoundException e) {
-            jLabelStatus
-                    .setText("Error: Driver de MariaDB no encontrado. Asegúrese de añadir el conector a su proyecto.");
-        } catch (SQLException ex) {
-            jLabelStatus.setText("Error al conectar a la base de datos: " + ex.getMessage());
         }
+        return dbConnection;
     }
 
     private void disconnectFromDatabase() {
@@ -498,9 +494,10 @@ public class JSGD extends javax.swing.JFrame {
         model.setRowCount(0);
 
         try {
+            Connection conn = getDBConnection();
             // Obtener nombre del trabajador
             String sqlNombre = "SELECT nombre, apellidos FROM trabajadores WHERE carnet_identidad = ?";
-            PreparedStatement pstmtNombre = dbConnection.prepareStatement(sqlNombre);
+            PreparedStatement pstmtNombre = conn.prepareStatement(sqlNombre);
             pstmtNombre.setString(1, carnetIdentidad);
             ResultSet rsNombre = pstmtNombre.executeQuery();
 
@@ -513,7 +510,7 @@ public class JSGD extends javax.swing.JFrame {
                         "JOIN trabajadores t ON ra.trabajador_id = t.id " +
                         "WHERE t.carnet_identidad = ? AND ra.fecha >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) " +
                         "ORDER BY ra.fecha DESC";
-                PreparedStatement pstmtAsistencia = dbConnection.prepareStatement(sqlAsistencia);
+                PreparedStatement pstmtAsistencia = conn.prepareStatement(sqlAsistencia);
                 pstmtAsistencia.setString(1, carnetIdentidad);
                 ResultSet rsAsistencia = pstmtAsistencia.executeQuery();
 
@@ -540,8 +537,9 @@ public class JSGD extends javax.swing.JFrame {
         boolean[] matched = new boolean[1];
 
         String sql = "SELECT id, nombre, apellidos, carnet_identidad, huella_dactilar FROM trabajadores WHERE huella_dactilar IS NOT NULL";
-        try (PreparedStatement pstmt = dbConnection.prepareStatement(sql);
-                ResultSet rs = pstmt.executeQuery()) {
+        try (Connection conn = getDBConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
 
             boolean fingerMatched = false;
             while (rs.next()) {
@@ -794,7 +792,9 @@ public class JSGD extends javax.swing.JFrame {
         long secuLevel = (long) (this.jComboBoxVerifySecurityLevel.getSelectedIndex() + 1);
         String sql = "SELECT id, nombre, apellidos, carnet_identidad, huella_dactilar, foto, NOW() as fecha_hora_servidor FROM trabajadores WHERE huella_dactilar IS NOT NULL";
 
-        try (PreparedStatement pstmt = dbConnection.prepareStatement(sql); ResultSet rs = pstmt.executeQuery()) {
+        try (Connection conn = getDBConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
             boolean fingerMatched = false;
             while (rs.next()) {
                 String encodedTemplate = rs.getString("huella_dactilar");
@@ -887,49 +887,52 @@ public class JSGD extends javax.swing.JFrame {
 
     private String registrarAsistencia(int trabajadorId, String tipoRegistro) {
         String checkSql = "SELECT id, hora_entrada, hora_salida FROM registro_asistencia WHERE trabajador_id = ? AND fecha = CURDATE()";
-        try (PreparedStatement checkPstmt = dbConnection.prepareStatement(checkSql)) {
-            checkPstmt.setInt(1, trabajadorId);
-            ResultSet rs = checkPstmt.executeQuery();
+        try {
+            Connection conn = getDBConnection();
+            try (PreparedStatement checkPstmt = conn.prepareStatement(checkSql)) {
+                checkPstmt.setInt(1, trabajadorId);
+                ResultSet rs = checkPstmt.executeQuery();
 
-            if (rs.next()) { // Record for today exists
-                Time horaEntrada = rs.getTime("hora_entrada");
-                Time horaSalida = rs.getTime("hora_salida");
-                int registroId = rs.getInt("id");
+                if (rs.next()) { // Record for today exists
+                    Time horaEntrada = rs.getTime("hora_entrada");
+                    Time horaSalida = rs.getTime("hora_salida");
+                    int registroId = rs.getInt("id");
 
-                if (tipoRegistro.equals("Entrada")) {
-                    if (horaEntrada == null) {
-                        String updateSql = "UPDATE registro_asistencia SET hora_entrada = CURTIME() WHERE id = ?";
-                        try (PreparedStatement updatePstmt = dbConnection.prepareStatement(updateSql)) {
-                            updatePstmt.setInt(1, registroId);
-                            updatePstmt.executeUpdate();
-                            return "Entrada registrada exitosamente.";
+                    if (tipoRegistro.equals("Entrada")) {
+                        if (horaEntrada == null) {
+                            String updateSql = "UPDATE registro_asistencia SET hora_entrada = CURTIME() WHERE id = ?";
+                            try (PreparedStatement updatePstmt = conn.prepareStatement(updateSql)) {
+                                updatePstmt.setInt(1, registroId);
+                                updatePstmt.executeUpdate();
+                                return "Entrada registrada exitosamente.";
+                            }
+                        } else {
+                            return "La entrada ya fue registrada hoy.";
                         }
-                    } else {
-                        return "La entrada ya fue registrada hoy.";
-                    }
-                } else { // Salida
-                    if (horaSalida == null) {
-                        String updateSql = "UPDATE registro_asistencia SET hora_salida = CURTIME() WHERE id = ?";
-                        try (PreparedStatement updatePstmt = dbConnection.prepareStatement(updateSql)) {
-                            updatePstmt.setInt(1, registroId);
-                            updatePstmt.executeUpdate();
-                            return "Salida registrada exitosamente.";
+                    } else { // Salida
+                        if (horaSalida == null) {
+                            String updateSql = "UPDATE registro_asistencia SET hora_salida = CURTIME() WHERE id = ?";
+                            try (PreparedStatement updatePstmt = conn.prepareStatement(updateSql)) {
+                                updatePstmt.setInt(1, registroId);
+                                updatePstmt.executeUpdate();
+                                return "Salida registrada exitosamente.";
+                            }
+                        } else {
+                            return "La salida ya fue registrada hoy.";
                         }
-                    } else {
-                        return "La salida ya fue registrada hoy.";
                     }
-                }
-            } else { // No record for today, insert new
-                String insertSql;
-                if (tipoRegistro.equals("Entrada")) {
-                    insertSql = "INSERT INTO registro_asistencia (trabajador_id, fecha, hora_entrada) VALUES (?, CURDATE(), CURTIME())";
-                } else { // Salida
-                    insertSql = "INSERT INTO registro_asistencia (trabajador_id, fecha, hora_salida) VALUES (?, CURDATE(), CURTIME())";
-                }
-                try (PreparedStatement insertPstmt = dbConnection.prepareStatement(insertSql)) {
-                    insertPstmt.setInt(1, trabajadorId);
-                    insertPstmt.executeUpdate();
-                    return tipoRegistro + " registrada exitosamente.";
+                } else { // No record for today, insert new
+                    String insertSql;
+                    if (tipoRegistro.equals("Entrada")) {
+                        insertSql = "INSERT INTO registro_asistencia (trabajador_id, fecha, hora_entrada) VALUES (?, CURDATE(), CURTIME())";
+                    } else { // Salida
+                        insertSql = "INSERT INTO registro_asistencia (trabajador_id, fecha, hora_salida) VALUES (?, CURDATE(), CURTIME())";
+                    }
+                    try (PreparedStatement insertPstmt = conn.prepareStatement(insertSql)) {
+                        insertPstmt.setInt(1, trabajadorId);
+                        insertPstmt.executeUpdate();
+                        return tipoRegistro + " registrada exitosamente.";
+                    }
                 }
             }
         } catch (SQLException e) {
@@ -1027,14 +1030,11 @@ public class JSGD extends javax.swing.JFrame {
     }
 
     private void saveFingerprint(String carnetIdentidad, byte[] fingerprintTemplate) {
-        if (dbConnection == null) {
-            jLabelStatus.setText("Error: No hay conexión con la base de datos.");
-            return;
-        }
         String encodedTemplate = Base64.getEncoder().encodeToString(fingerprintTemplate);
         String sql = "UPDATE trabajadores SET huella_dactilar = ? WHERE carnet_identidad = ?";
 
-        try (PreparedStatement pstmt = dbConnection.prepareStatement(sql)) {
+        try (Connection conn = getDBConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, encodedTemplate);
             pstmt.setString(2, carnetIdentidad);
             int affectedRows = pstmt.executeUpdate();
