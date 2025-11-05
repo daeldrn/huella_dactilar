@@ -69,27 +69,6 @@ public class JSGD extends javax.swing.JFrame {
         disableControls();
         this.jComboBoxRegisterSecurityLevel.setSelectedIndex(4);
         this.jComboBoxVerifySecurityLevel.setSelectedIndex(4);
-
-        // Set default value for jComboBoxRegistro based on time and schedule updates
-        updateRegistroComboBox(); // Set initial value
-        Timer timer = new Timer(3600000, new ActionListener() { // 3600000 ms = 1 hour
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                updateRegistroComboBox();
-            }
-        });
-        timer.start();
-    }
-
-    private void updateRegistroComboBox() {
-        Calendar cal = Calendar.getInstance();
-        int hour = cal.get(Calendar.HOUR_OF_DAY);
-        // From 7:00 AM to 12:59 PM is "Entrada"
-        if (hour >= 7 && hour < 13) {
-            jComboBoxRegistro.setSelectedItem("Entrada");
-        } else {
-            jComboBoxRegistro.setSelectedItem("Salida");
-        }
     }
 
     private Connection getDBConnection() throws SQLException {
@@ -167,8 +146,6 @@ public class JSGD extends javax.swing.JFrame {
         jLabel3 = new javax.swing.JLabel();
         jSliderSeconds = new javax.swing.JSlider();
         jButtonClose = new javax.swing.JButton();
-        jLabelRegistro = new javax.swing.JLabel();
-        jComboBoxRegistro = new javax.swing.JComboBox();
         jPanelRegisterVerify = new javax.swing.JPanel();
         jLabelSecurityLevel = new javax.swing.JLabel();
         jLabelRegistration = new javax.swing.JLabel();
@@ -230,15 +207,6 @@ public class JSGD extends javax.swing.JFrame {
         jLabelImage.setMinimumSize(new java.awt.Dimension(260, 300));
         jLabelImage.setPreferredSize(new java.awt.Dimension(260, 300));
         jPanelImage.add(jLabelImage, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 60, -1, -1));
-
-        jLabelRegistro.setText("Registro");
-        jPanelImage.add(jLabelRegistro, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 90, -1, -1));
-
-        jComboBoxRegistro.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Entrada", "Salida" }));
-        jComboBoxRegistro.setMaximumSize(new java.awt.Dimension(170, 27));
-        jComboBoxRegistro.setMinimumSize(new java.awt.Dimension(170, 27));
-        jComboBoxRegistro.setPreferredSize(new java.awt.Dimension(170, 27));
-        jPanelImage.add(jComboBoxRegistro, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 110, 170, 27));
 
         jButtonToggleLED.setText("LED");
         jButtonToggleLED.setMaximumSize(new java.awt.Dimension(100, 30));
@@ -823,9 +791,14 @@ public class JSGD extends javax.swing.JFrame {
                         String carnet = rs.getString("carnet_identidad");
                         String fechaHora = rs.getString("fecha_hora_servidor");
                         byte[] fotoBytes = rs.getBytes("foto");
-                        String tipoRegistro = (String) jComboBoxRegistro.getSelectedItem();
+                        String mensajeAsistencia = registrarAsistencia(trabajadorId);
+                        String tipoRegistro = "";
+                        if (mensajeAsistencia.contains("Entrada")) {
+                            tipoRegistro = "Entrada";
+                        } else if (mensajeAsistencia.contains("Salida")) {
+                            tipoRegistro = "Salida";
+                        }
                         String etiquetaFecha = "Fecha/Hora " + tipoRegistro;
-                        String mensajeAsistencia = registrarAsistencia(trabajadorId, tipoRegistro);
 
                         // Panel para mostrar la información y la foto
                         JPanel panel = new JPanel(new BorderLayout(15, 15));
@@ -899,53 +872,41 @@ public class JSGD extends javax.swing.JFrame {
         }
     }// GEN-LAST:event_jButtonToggleLEDActionPerformed
 
-    private String registrarAsistencia(int trabajadorId, String tipoRegistro) {
-        String checkSql = "SELECT id, hora_entrada, hora_salida FROM registro_asistencia WHERE trabajador_id = ? AND fecha = CURDATE()";
+    private String registrarAsistencia(int trabajadorId) {
+        String checkSql = "SELECT id, hora_entrada FROM registro_asistencia WHERE trabajador_id = ? AND fecha = CURDATE()";
         try {
             Connection conn = getDBConnection();
             try (PreparedStatement checkPstmt = conn.prepareStatement(checkSql)) {
                 checkPstmt.setInt(1, trabajadorId);
                 ResultSet rs = checkPstmt.executeQuery();
 
-                if (rs.next()) { // Record for today exists
-                    Time horaEntrada = rs.getTime("hora_entrada");
-                    Time horaSalida = rs.getTime("hora_salida");
+                if (rs.next()) { // A record for today exists.
                     int registroId = rs.getInt("id");
+                    Time horaEntrada = rs.getTime("hora_entrada");
 
-                    if (tipoRegistro.equals("Entrada")) {
-                        if (horaEntrada == null) {
-                            String updateSql = "UPDATE registro_asistencia SET hora_entrada = CURTIME() WHERE id = ?";
-                            try (PreparedStatement updatePstmt = conn.prepareStatement(updateSql)) {
-                                updatePstmt.setInt(1, registroId);
-                                updatePstmt.executeUpdate();
-                                return "Entrada registrada exitosamente.";
-                            }
-                        } else {
-                            return "La entrada ya fue registrada hoy.";
+                    if (horaEntrada == null) {
+                        // This is the first capture, even if the row exists. Update entry time.
+                        String updateSql = "UPDATE registro_asistencia SET hora_entrada = CURTIME() WHERE id = ?";
+                        try (PreparedStatement updatePstmt = conn.prepareStatement(updateSql)) {
+                            updatePstmt.setInt(1, registroId);
+                            updatePstmt.executeUpdate();
+                            return "Entrada registrada exitosamente.";
                         }
-                    } else { // Salida
-                        if (horaSalida == null) {
-                            String updateSql = "UPDATE registro_asistencia SET hora_salida = CURTIME() WHERE id = ?";
-                            try (PreparedStatement updatePstmt = conn.prepareStatement(updateSql)) {
-                                updatePstmt.setInt(1, registroId);
-                                updatePstmt.executeUpdate();
-                                return "Salida registrada exitosamente.";
-                            }
-                        } else {
-                            return "La salida ya fue registrada hoy.";
+                    } else {
+                        // This is the second or subsequent capture. Update exit time.
+                        String updateSql = "UPDATE registro_asistencia SET hora_salida = CURTIME() WHERE id = ?";
+                        try (PreparedStatement updatePstmt = conn.prepareStatement(updateSql)) {
+                            updatePstmt.setInt(1, registroId);
+                            updatePstmt.executeUpdate();
+                            return "Salida registrada exitosamente.";
                         }
                     }
-                } else { // No record for today, insert new
-                    String insertSql;
-                    if (tipoRegistro.equals("Entrada")) {
-                        insertSql = "INSERT INTO registro_asistencia (trabajador_id, fecha, hora_entrada) VALUES (?, CURDATE(), CURTIME())";
-                    } else { // Salida
-                        insertSql = "INSERT INTO registro_asistencia (trabajador_id, fecha, hora_salida) VALUES (?, CURDATE(), CURTIME())";
-                    }
+                } else { // No record for today. This is the 1st capture.
+                    String insertSql = "INSERT INTO registro_asistencia (trabajador_id, fecha, hora_entrada) VALUES (?, CURDATE(), CURTIME())";
                     try (PreparedStatement insertPstmt = conn.prepareStatement(insertSql)) {
                         insertPstmt.setInt(1, trabajadorId);
                         insertPstmt.executeUpdate();
-                        return tipoRegistro + " registrada exitosamente.";
+                        return "Entrada registrada exitosamente.";
                     }
                 }
             }
@@ -1076,7 +1037,6 @@ public class JSGD extends javax.swing.JFrame {
     private javax.swing.JComboBox jComboBoxDeviceName;
     private javax.swing.JComboBox jComboBoxRegisterSecurityLevel;
     private javax.swing.JComboBox jComboBoxVerifySecurityLevel;
-    private javax.swing.JComboBox jComboBoxRegistro;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabelCarnet;
@@ -1087,7 +1047,6 @@ public class JSGD extends javax.swing.JFrame {
     private javax.swing.JLabel jLabelRegisterImage2;
     private javax.swing.JLabel jLabelRegistration;
     private javax.swing.JLabel jLabelRegistrationBox;
-    private javax.swing.JLabel jLabelRegistro;
     private javax.swing.JLabel jLabelSecurityLevel;
     private javax.swing.JLabel jLabelSpacer1;
     private javax.swing.JLabel jLabelSpacer2;
