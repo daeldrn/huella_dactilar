@@ -9,6 +9,8 @@ package SecuGen.FDxSDKPro.samples;
 import SecuGen.FDxSDKPro.jni.*;
 import java.awt.*;
 import java.awt.MediaTracker;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.image.*;
 import javax.swing.*;
 import java.io.ByteArrayInputStream;
@@ -68,10 +70,22 @@ public class JSGD extends javax.swing.JFrame {
         this.jComboBoxRegisterSecurityLevel.setSelectedIndex(4);
         this.jComboBoxVerifySecurityLevel.setSelectedIndex(4);
 
-        // Set default value for jComboBoxRegistro based on time
+        // Set default value for jComboBoxRegistro based on time and schedule updates
+        updateRegistroComboBox(); // Set initial value
+        Timer timer = new Timer(3600000, new ActionListener() { // 3600000 ms = 1 hour
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                updateRegistroComboBox();
+            }
+        });
+        timer.start();
+    }
+
+    private void updateRegistroComboBox() {
         Calendar cal = Calendar.getInstance();
         int hour = cal.get(Calendar.HOUR_OF_DAY);
-        if (hour < 13) {
+        // From 7:00 AM to 12:59 PM is "Entrada"
+        if (hour >= 7 && hour < 13) {
             jComboBoxRegistro.setSelectedItem("Entrada");
         } else {
             jComboBoxRegistro.setSelectedItem("Salida");
@@ -186,7 +200,7 @@ public class JSGD extends javax.swing.JFrame {
         jLabelSpacer1 = new javax.swing.JLabel();
         jLabelSpacer2 = new javax.swing.JLabel();
 
-        setTitle("AllNovu Huella");
+        setTitle("AllNovu Huella v1.3");
         addWindowListener(new java.awt.event.WindowAdapter() {
             public void windowClosing(java.awt.event.WindowEvent evt) {
                 exitForm(evt);
