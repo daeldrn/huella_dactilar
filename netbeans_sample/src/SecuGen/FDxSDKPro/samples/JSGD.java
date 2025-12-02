@@ -7,12 +7,18 @@
 package SecuGen.FDxSDKPro.samples;
 
 import SecuGen.FDxSDKPro.jni.*;
+import SecuGen.FDxSDKPro.jni.JSGFPLib;
+import SecuGen.FDxSDKPro.jni.SGDeviceInfoParam;
+import SecuGen.FDxSDKPro.jni.SGFDxDeviceName;
 import java.awt.*;
 import java.awt.MediaTracker;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.image.*;
 import javax.swing.*;
+import javax.swing.JDialog;
+import javax.swing.SwingUtilities;
+import java.awt.Window;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import javax.imageio.ImageIO;
@@ -52,6 +58,8 @@ public class JSGD extends javax.swing.JFrame {
     private boolean r1Captured = false;
     private boolean r2Captured = false;
     private boolean v1Captured = false;
+    private SwingWorker<Void, Void> captureWorker;
+    private volatile boolean isCapturing = false;
     private static int MINIMUM_QUALITY = 60; // User defined
     private static int MINIMUM_NUM_MINUTIAE = 20; // User defined
     private static int MAXIMUM_NFIQ = 2; // User defined
@@ -177,7 +185,7 @@ public class JSGD extends javax.swing.JFrame {
         jLabelSpacer1 = new javax.swing.JLabel();
         jLabelSpacer2 = new javax.swing.JLabel();
 
-        setTitle("AllNovu Huella v1.3");
+        setTitle("AllNovu Huella v1.6");
         addWindowListener(new java.awt.event.WindowAdapter() {
             public void windowClosing(java.awt.event.WindowEvent evt) {
                 exitForm(evt);
@@ -475,6 +483,7 @@ public class JSGD extends javax.swing.JFrame {
         DefaultTableModel model = (DefaultTableModel) jTableAsistencia.getModel();
         model.setRowCount(0);
 
+        this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
         try {
             Connection conn = getDBConnection();
             // Obtener nombre del trabajador
@@ -511,6 +520,8 @@ public class JSGD extends javax.swing.JFrame {
 
         } catch (SQLException e) {
             jLabelStatus.setText("Error al consultar la base de datos: " + e.getMessage());
+        } finally {
+            this.setCursor(Cursor.getDefaultCursor());
         }
     }// GEN-LAST:event_jButtonGetDeviceInfoActionPerformed
 
@@ -518,6 +529,7 @@ public class JSGD extends javax.swing.JFrame {
         long secuLevel = (long) (this.jComboBoxVerifySecurityLevel.getSelectedIndex() + 1);
         boolean[] matched = new boolean[1];
 
+        this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
         String sql = "SELECT id, nombre, apellidos, carnet_identidad, huella_dactilar FROM trabajadores WHERE huella_dactilar IS NOT NULL";
         try (Connection conn = getDBConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql);
@@ -548,6 +560,8 @@ public class JSGD extends javax.swing.JFrame {
             }
         } catch (SQLException e) {
             this.jLabelStatus.setText("Error al verificar la huella dactilar: " + e.getMessage());
+        } finally {
+            this.setCursor(Cursor.getDefaultCursor());
         }
     }// GEN-LAST:event_jButtonVerifyActionPerformed
 
@@ -739,22 +753,67 @@ public class JSGD extends javax.swing.JFrame {
     }// GEN-LAST:event_jButtonCaptureR1ActionPerformed
 
     private void jButtonCaptureActionPerformed(java.awt.event.ActionEvent evt) {
+        if (isCapturing) {
+            stopCapture();
+        } else {
+            startCapture();
+        }
+    }
+
+    private void startCapture() {
         if (fplib == null) {
             this.jLabelStatus.setText("JSGFPLib no está inicializado");
             return;
         }
+        isCapturing = true;
+        jButtonCapture.setText("Detener Captura");
+        this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+        jLabelStatus.setText("Captura continua iniciada...");
 
+        captureWorker = new SwingWorker<Void, Void>() {
+            @Override
+            protected Void doInBackground() throws Exception {
+                while (isCapturing) {
+                    performCaptureAndVerification();
+                }
+                return null;
+            }
+
+            @Override
+            protected void done() {
+                isCapturing = false;
+                jButtonCapture.setText("Capturar");
+                setCursor(Cursor.getDefaultCursor());
+                jLabelStatus.setText("Captura detenida.");
+                disconnectFromDatabase(); // Asegurarse de cerrar la conexión al detener.
+            }
+        };
+        captureWorker.execute();
+    }
+
+    private void stopCapture() {
+        if (captureWorker != null && !captureWorker.isDone()) {
+            isCapturing = false;
+            captureWorker.cancel(true);
+        }
+    }
+
+    private void performCaptureAndVerification() {
         // 1. Capturar la imagen de la huella
         BufferedImage img1gray = new BufferedImage(deviceInfo.imageWidth, deviceInfo.imageHeight,
                 BufferedImage.TYPE_BYTE_GRAY);
         byte[] imageBuffer1 = ((java.awt.image.DataBufferByte) img1gray.getRaster().getDataBuffer()).getData();
-        long iError = fplib.GetImageEx(imageBuffer1, jSliderSeconds.getValue() * 1000, 0, jSliderQuality.getValue());
+        long iError = fplib.GetImageEx(imageBuffer1, 1000, 0, jSliderQuality.getValue());
 
         if (iError != SGFDxErrorCode.SGFDX_ERROR_NONE) {
-            this.jLabelStatus.setText("Error al capturar la imagen: " + iError);
-            return;
+            if (iError != SGFDxErrorCode.SGFDX_ERROR_TIME_OUT) { // No mostrar error de timeout
+                final long error = iError;
+                SwingUtilities.invokeLater(() -> jLabelStatus.setText("Error al capturar la imagen: " + error));
+            }
+            return; // Si no hay huella (timeout) o hay error, reintentar en la siguiente iteración
         }
-        this.jLabelImage.setIcon(new ImageIcon(img1gray));
+
+        SwingUtilities.invokeLater(() -> jLabelImage.setIcon(new ImageIcon(img1gray)));
 
         // 2. Crear la plantilla de la huella capturada
         byte[] capturedTemplate = new byte[400];
@@ -765,7 +824,8 @@ public class JSGD extends javax.swing.JFrame {
 
         iError = fplib.CreateTemplate(fingerInfo, imageBuffer1, capturedTemplate);
         if (iError != SGFDxErrorCode.SGFDX_ERROR_NONE) {
-            this.jLabelStatus.setText("Error al crear la plantilla: " + iError);
+            final long error = iError;
+            SwingUtilities.invokeLater(() -> jLabelStatus.setText("Error al crear la plantilla: " + error));
             return;
         }
 
@@ -774,87 +834,105 @@ public class JSGD extends javax.swing.JFrame {
         long secuLevel = (long) (this.jComboBoxVerifySecurityLevel.getSelectedIndex() + 1);
         String sql = "SELECT id, nombre, apellidos, carnet_identidad, huella_dactilar, foto, NOW() as fecha_hora_servidor FROM trabajadores WHERE huella_dactilar IS NOT NULL";
 
-        try (Connection conn = getDBConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql);
-             ResultSet rs = pstmt.executeQuery()) {
-            boolean fingerMatched = false;
-            while (rs.next()) {
-                String encodedTemplate = rs.getString("huella_dactilar");
-                if (encodedTemplate != null && !encodedTemplate.isEmpty()) {
-                    byte[] dbTemplate = Base64.getDecoder().decode(encodedTemplate);
-                    iError = fplib.MatchTemplate(dbTemplate, capturedTemplate, secuLevel, matched);
+        Connection conn = null;
+        try {
+            conn = getDBConnection();
+            try (PreparedStatement pstmt = conn.prepareStatement(sql);
+                 ResultSet rs = pstmt.executeQuery()) {
+                boolean fingerMatched = false;
+                while (rs.next()) {
+                    String encodedTemplate = rs.getString("huella_dactilar");
+                    if (encodedTemplate != null && !encodedTemplate.isEmpty()) {
+                        byte[] dbTemplate = Base64.getDecoder().decode(encodedTemplate);
+                        iError = fplib.MatchTemplate(dbTemplate, capturedTemplate, secuLevel, matched);
 
-                    if (iError == SGFDxErrorCode.SGFDX_ERROR_NONE && matched[0]) {
-                        int trabajadorId = rs.getInt("id");
-                        String nombre = rs.getString("nombre");
-                        String apellidos = rs.getString("apellidos");
-                        String carnet = rs.getString("carnet_identidad");
-                        String fechaHora = rs.getString("fecha_hora_servidor");
-                        byte[] fotoBytes = rs.getBytes("foto");
-                        String mensajeAsistencia = registrarAsistencia(trabajadorId);
-                        String tipoRegistro = "";
-                        if (mensajeAsistencia.contains("Entrada")) {
-                            tipoRegistro = "Entrada";
-                        } else if (mensajeAsistencia.contains("Salida")) {
-                            tipoRegistro = "Salida";
-                        }
-                        String etiquetaFecha = "Fecha/Hora " + tipoRegistro;
+                        if (iError == SGFDxErrorCode.SGFDX_ERROR_NONE && matched[0]) {
+                            int trabajadorId = rs.getInt("id");
+                            String nombre = rs.getString("nombre");
+                            String apellidos = rs.getString("apellidos");
+                            String carnet = rs.getString("carnet_identidad");
+                            String fechaHora = rs.getString("fecha_hora_servidor");
+                            byte[] fotoBytes = rs.getBytes("foto");
+                            String mensajeAsistencia = registrarAsistencia(trabajadorId);
+                            String tipoRegistro = mensajeAsistencia.contains("Entrada") ? "Entrada" : "Salida";
+                            String etiquetaFecha = "Fecha/Hora " + tipoRegistro;
 
-                        // Panel para mostrar la información y la foto
-                        JPanel panel = new JPanel(new BorderLayout(15, 15));
-                        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+                            SwingUtilities.invokeLater(() -> {
+                                JPanel panel = new JPanel(new BorderLayout(15, 15));
+                                panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-                        // Etiqueta para la foto
-                        JLabel fotoLabel = new JLabel();
-                        if (fotoBytes != null && fotoBytes.length > 0) {
-                            try {
-                                ByteArrayInputStream bis = new ByteArrayInputStream(fotoBytes);
-                                BufferedImage img = ImageIO.read(bis);
-                                if (img != null) {
-                                    Image scaledImg = img.getScaledInstance(100, 100, Image.SCALE_SMOOTH);
-                                    fotoLabel.setIcon(new ImageIcon(scaledImg));
+                                JLabel fotoLabel = new JLabel();
+                                if (fotoBytes != null && fotoBytes.length > 0) {
+                                    try {
+                                        ByteArrayInputStream bis = new ByteArrayInputStream(fotoBytes);
+                                        BufferedImage img = ImageIO.read(bis);
+                                        if (img != null) {
+                                            Image scaledImg = img.getScaledInstance(100, 100, Image.SCALE_SMOOTH);
+                                            fotoLabel.setIcon(new ImageIcon(scaledImg));
+                                        } else {
+                                            fotoLabel.setText("No se pudo cargar la foto");
+                                        }
+                                    } catch (IOException e) {
+                                        fotoLabel.setText("Error al procesar la imagen");
+                                    }
                                 } else {
-                                    fotoLabel.setText("No se pudo cargar la foto");
+                                    fotoLabel.setText("No hay foto");
                                 }
-                            } catch (IOException e) {
-                                fotoLabel.setText("Error al procesar la imagen");
-                            }
-                        } else {
-                            fotoLabel.setText("No hay foto");
+                                if (fotoLabel.getIcon() == null) {
+                                    fotoLabel.setPreferredSize(new Dimension(100, 100));
+                                    fotoLabel.setHorizontalAlignment(JLabel.CENTER);
+                                    fotoLabel.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+                                }
+                                panel.add(fotoLabel, BorderLayout.WEST);
+
+                                String mensajeCompleto = "<html><b>Trabajador:</b> " + nombre + " " + apellidos + "<br>" +
+                                        "<b>Carnet de Identidad:</b> " + carnet + "<br>" +
+                                        "<b>" + etiquetaFecha + ":</b> " + fechaHora + "<br>" +
+                                        "<b>Registro:</b> " + mensajeAsistencia + "</html>";
+                                JLabel infoLabel = new JLabel(mensajeCompleto);
+                                panel.add(infoLabel, BorderLayout.CENTER);
+
+                                // Usar un JDialog no modal para no bloquear el hilo de captura
+                                JDialog dialog = new JDialog(this, "Confirmación de Registro", false); // false for non-modal
+                                dialog.setContentPane(panel);
+                                dialog.pack();
+                                dialog.setLocationRelativeTo(this); // Center relative to the main frame
+                                dialog.setVisible(true);
+
+                                jLabelStatus.setText("Verificación correcta. " + mensajeAsistencia);
+                            });
+
+                            fingerMatched = true;
+                            // Pausa para mostrar el resultado antes de volver a escanear
+                            try { Thread.sleep(jSliderSeconds.getValue() * 1000); } catch (InterruptedException e) {}
+                            
+                            // Cierra el diálogo no modal antes de continuar
+                            SwingUtilities.invokeLater(() -> {
+                                for (Window window : Window.getWindows()) {
+                                    if (window instanceof JDialog && ((JDialog) window).isModal() == false) {
+                                        window.dispose();
+                                    }
+                                }
+                            });
+                            
+                            break;
                         }
-
-                        // Configuración común para la etiqueta de la foto si no hay imagen
-                        if (fotoLabel.getIcon() == null) {
-                            fotoLabel.setPreferredSize(new Dimension(100, 100));
-                            fotoLabel.setHorizontalAlignment(JLabel.CENTER);
-                            fotoLabel.setBorder(BorderFactory.createLineBorder(Color.BLACK));
-                        }
-                        panel.add(fotoLabel, BorderLayout.WEST);
-
-                        // Etiqueta para la información del trabajador
-                        String mensajeCompleto = "<html><b>Trabajador:</b> " + nombre + " " + apellidos + "<br>" +
-                                "<b>Carnet de Identidad:</b> " + carnet + "<br>" +
-                                "<b>" + etiquetaFecha + ":</b> " + fechaHora + "<br>" +
-                                "<b>Registro:</b> " + mensajeAsistencia + "</html>";
-                        JLabel infoLabel = new JLabel(mensajeCompleto);
-                        panel.add(infoLabel, BorderLayout.CENTER);
-
-                        JOptionPane.showMessageDialog(this, panel, "Confirmación de Registro",
-                                JOptionPane.INFORMATION_MESSAGE);
-                        this.jLabelStatus
-                                .setText("Verificación correcta. " + mensajeAsistencia);
-                        fingerMatched = true;
-                        break;
                     }
                 }
+                if (!fingerMatched) {
+                    SwingUtilities.invokeLater(() -> jLabelStatus.setText("Huella no encontrada en la base de datos."));
+                }
             }
-
-            if (!fingerMatched) {
-                this.jLabelStatus.setText("Huella no encontrada en la base de datos.");
-            }
-
         } catch (SQLException e) {
-            this.jLabelStatus.setText("Error al verificar en la base de datos: " + e.getMessage());
+            SwingUtilities.invokeLater(() -> jLabelStatus.setText("Error al verificar en la base de datos: " + e.getMessage()));
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.close();
+                } catch (SQLException ex) {
+                    // Ignorar error al cerrar
+                }
+            }
         }
     }
 
