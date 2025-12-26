@@ -185,7 +185,7 @@ public class JSGD extends javax.swing.JFrame {
         jLabelSpacer1 = new javax.swing.JLabel();
         jLabelSpacer2 = new javax.swing.JLabel();
 
-        setTitle("AllNovu Huella v1.6");
+        setTitle("AllNovu Huella v1.7");
         addWindowListener(new java.awt.event.WindowAdapter() {
             public void windowClosing(java.awt.event.WindowEvent evt) {
                 exitForm(evt);
@@ -532,8 +532,8 @@ public class JSGD extends javax.swing.JFrame {
         this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
         String sql = "SELECT id, nombre, apellidos, carnet_identidad, huella_dactilar FROM trabajadores WHERE huella_dactilar IS NOT NULL";
         try (Connection conn = getDBConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql);
-             ResultSet rs = pstmt.executeQuery()) {
+                PreparedStatement pstmt = conn.prepareStatement(sql);
+                ResultSet rs = pstmt.executeQuery()) {
 
             boolean fingerMatched = false;
             while (rs.next()) {
@@ -839,7 +839,7 @@ public class JSGD extends javax.swing.JFrame {
             try {
                 conn = getDBConnection();
                 try (PreparedStatement pstmt = conn.prepareStatement(sql);
-                     ResultSet rs = pstmt.executeQuery()) {
+                        ResultSet rs = pstmt.executeQuery()) {
                     boolean fingerMatched = false;
                     while (rs.next()) {
                         String encodedTemplate = rs.getString("huella_dactilar");
@@ -886,7 +886,8 @@ public class JSGD extends javax.swing.JFrame {
                                     }
                                     panel.add(fotoLabel, BorderLayout.WEST);
 
-                                    String mensajeCompleto = "<html><b>Trabajador:</b> " + nombre + " " + apellidos + "<br>" +
+                                    String mensajeCompleto = "<html><b>Trabajador:</b> " + nombre + " " + apellidos
+                                            + "<br>" +
                                             "<b>Carnet de Identidad:</b> " + carnet + "<br>" +
                                             "<b>" + etiquetaFecha + ":</b> " + fechaHora + "<br>" +
                                             "<b>Registro:</b> " + mensajeAsistencia + "</html>";
@@ -894,7 +895,8 @@ public class JSGD extends javax.swing.JFrame {
                                     panel.add(infoLabel, BorderLayout.CENTER);
 
                                     // Usar un JDialog no modal para no bloquear el hilo de captura
-                                    JDialog dialog = new JDialog(this, "Confirmación de Registro", false); // false for non-modal
+                                    JDialog dialog = new JDialog(this, "Confirmación de Registro", false); // false for
+                                                                                                           // non-modal
                                     dialog.setContentPane(panel);
                                     dialog.pack();
                                     dialog.setLocationRelativeTo(this); // Center relative to the main frame
@@ -905,8 +907,11 @@ public class JSGD extends javax.swing.JFrame {
 
                                 fingerMatched = true;
                                 // Pausa para mostrar el resultado antes de volver a escanear
-                                try { Thread.sleep(jSliderSeconds.getValue() * 1000); } catch (InterruptedException e) {}
-                                
+                                try {
+                                    Thread.sleep(jSliderSeconds.getValue() * 1000);
+                                } catch (InterruptedException e) {
+                                }
+
                                 // Cierra el diálogo no modal antes de continuar
                                 SwingUtilities.invokeLater(() -> {
                                     for (Window window : Window.getWindows()) {
@@ -915,17 +920,19 @@ public class JSGD extends javax.swing.JFrame {
                                         }
                                     }
                                 });
-                                
+
                                 break;
                             }
                         }
                     }
                     if (!fingerMatched) {
-                        SwingUtilities.invokeLater(() -> jLabelStatus.setText("Huella no encontrada en la base de datos."));
+                        SwingUtilities
+                                .invokeLater(() -> jLabelStatus.setText("Huella no encontrada en la base de datos."));
                     }
                 }
             } catch (SQLException e) {
-                SwingUtilities.invokeLater(() -> jLabelStatus.setText("Error al verificar en la base de datos: " + e.getMessage()));
+                SwingUtilities.invokeLater(
+                        () -> jLabelStatus.setText("Error al verificar en la base de datos: " + e.getMessage()));
             } finally {
                 if (conn != null) {
                     try {
@@ -1092,7 +1099,7 @@ public class JSGD extends javax.swing.JFrame {
         String sql = "UPDATE trabajadores SET huella_dactilar = ? WHERE carnet_identidad = ?";
 
         try (Connection conn = getDBConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, encodedTemplate);
             pstmt.setString(2, carnetIdentidad);
             int affectedRows = pstmt.executeUpdate();
