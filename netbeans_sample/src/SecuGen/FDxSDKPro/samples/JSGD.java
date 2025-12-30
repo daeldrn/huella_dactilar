@@ -7,11 +7,7 @@
 package SecuGen.FDxSDKPro.samples;
 
 import SecuGen.FDxSDKPro.jni.*;
-import SecuGen.FDxSDKPro.jni.JSGFPLib;
-import SecuGen.FDxSDKPro.jni.SGDeviceInfoParam;
-import SecuGen.FDxSDKPro.jni.SGFDxDeviceName;
 import java.awt.*;
-import java.awt.MediaTracker;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.image.*;
@@ -35,6 +31,11 @@ import java.util.Vector;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -69,6 +70,8 @@ public class JSGD extends javax.swing.JFrame {
     private static final String DB_USER = "allnovu-team";
     private static final String DB_PASSWORD = "Clave123!*";
     private Connection dbConnection;
+    private static final Logger logger = Logger.getLogger(JSGD.class.getName());
+    private ExecutorService dbExecutor = Executors.newCachedThreadPool();
 
     /** Creates new form JSGD */
     public JSGD() {
@@ -77,6 +80,14 @@ public class JSGD extends javax.swing.JFrame {
         disableControls();
         this.jComboBoxRegisterSecurityLevel.setSelectedIndex(4);
         this.jComboBoxVerifySecurityLevel.setSelectedIndex(4);
+
+        // Add shutdown hook to clean up resources
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            if (dbExecutor != null && !dbExecutor.isShutdown()) {
+                dbExecutor.shutdown();
+            }
+            disconnectFromDatabase();
+        }));
     }
 
     private Connection getDBConnection() throws SQLException {
@@ -472,8 +483,8 @@ public class JSGD extends javax.swing.JFrame {
     }// GEN-LAST:event_jButtonCloseActionPerformed
 
     private void jButtonGetDeviceInfoActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButtonGetDeviceInfoActionPerformed
-        String carnetIdentidad = jTextFieldCarnet.getText();
-        if (carnetIdentidad.trim().isEmpty()) {
+        String carnetIdentidad = jTextFieldCarnet.getText().trim();
+        if (carnetIdentidad.isEmpty()) {
             jLabelStatus.setText("Por favor, introduzca el carnet de identidad.");
             return;
         }
@@ -484,45 +495,57 @@ public class JSGD extends javax.swing.JFrame {
         model.setRowCount(0);
 
         this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-        try {
-            Connection conn = getDBConnection();
-            // Obtener nombre del trabajador
-            String sqlNombre = "SELECT nombre, apellidos FROM trabajadores WHERE carnet_identidad = ?";
-            PreparedStatement pstmtNombre = conn.prepareStatement(sqlNombre);
-            pstmtNombre.setString(1, carnetIdentidad);
-            ResultSet rsNombre = pstmtNombre.executeQuery();
 
-            if (rsNombre.next()) {
-                String nombre = rsNombre.getString("nombre") + " " + rsNombre.getString("apellidos");
-                jLabelNombreTrabajador.setText("Nombre del Trabajador: " + nombre);
+        Future<?> future = dbExecutor.submit(() -> {
+            try (Connection conn = getDBConnection();
+                 PreparedStatement pstmtNombre = conn.prepareStatement(
+                     "SELECT nombre, apellidos FROM trabajadores WHERE carnet_identidad = ?")) {
 
-                // Obtener registro de asistencia del último mes
-                String sqlAsistencia = "SELECT fecha, hora_entrada, hora_salida FROM registro_asistencia ra " +
-                        "JOIN trabajadores t ON ra.trabajador_id = t.id " +
-                        "WHERE t.carnet_identidad = ? AND ra.fecha >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) " +
-                        "ORDER BY ra.fecha DESC";
-                PreparedStatement pstmtAsistencia = conn.prepareStatement(sqlAsistencia);
-                pstmtAsistencia.setString(1, carnetIdentidad);
-                ResultSet rsAsistencia = pstmtAsistencia.executeQuery();
+                pstmtNombre.setString(1, carnetIdentidad);
+                try (ResultSet rsNombre = pstmtNombre.executeQuery()) {
+                    if (rsNombre.next()) {
+                        String nombreCompleto = rsNombre.getString("nombre") + " " + rsNombre.getString("apellidos");
+                        SwingUtilities.invokeLater(() ->
+                            jLabelNombreTrabajador.setText("Nombre del Trabajador: " + nombreCompleto));
 
-                while (rsAsistencia.next()) {
-                    Vector<Object> row = new Vector<>();
-                    row.add(rsAsistencia.getDate("fecha"));
-                    row.add(rsAsistencia.getTime("hora_entrada"));
-                    row.add(rsAsistencia.getTime("hora_salida"));
-                    model.addRow(row);
+                        // Obtener registro de asistencia del último mes usando prepared statement
+                        try (PreparedStatement pstmtAsistencia = conn.prepareStatement(
+                             "SELECT fecha, hora_entrada, hora_salida FROM registro_asistencia ra " +
+                             "JOIN trabajadores t ON ra.trabajador_id = t.id " +
+                             "WHERE t.carnet_identidad = ? AND ra.fecha >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) " +
+                             "ORDER BY ra.fecha DESC")) {
+
+                            pstmtAsistencia.setString(1, carnetIdentidad);
+                            try (ResultSet rsAsistencia = pstmtAsistencia.executeQuery()) {
+                                while (rsAsistencia.next()) {
+                                    Vector<Object> row = new Vector<>();
+                                    row.add(rsAsistencia.getDate("fecha"));
+                                    row.add(rsAsistencia.getTime("hora_entrada"));
+                                    row.add(rsAsistencia.getTime("hora_salida"));
+                                    SwingUtilities.invokeLater(() -> model.addRow(row));
+                                }
+                            }
+                        }
+                        SwingUtilities.invokeLater(() ->
+                            jLabelStatus.setText("Información de asistencia cargada."));
+                        logger.info("Información de asistencia cargada para CI: " + carnetIdentidad);
+
+                    } else {
+                        SwingUtilities.invokeLater(() ->
+                            jLabelStatus.setText("No se encontró ningún trabajador con el carnet de identidad proporcionado."));
+                        logger.warning("Trabajador no encontrado con CI: " + carnetIdentidad);
+                    }
                 }
-                jLabelStatus.setText("Información de asistencia cargada.");
 
-            } else {
-                jLabelStatus.setText("No se encontró ningún trabajador con el carnet de identidad proporcionado.");
+            } catch (SQLException e) {
+                logger.log(Level.SEVERE, "Error al consultar la base de datos", e);
+                SwingUtilities.invokeLater(() ->
+                    jLabelStatus.setText("Error al consultar la base de datos: " + e.getMessage()));
+            } finally {
+                SwingUtilities.invokeLater(() ->
+                    this.setCursor(Cursor.getDefaultCursor()));
             }
-
-        } catch (SQLException e) {
-            jLabelStatus.setText("Error al consultar la base de datos: " + e.getMessage());
-        } finally {
-            this.setCursor(Cursor.getDefaultCursor());
-        }
+        });
     }// GEN-LAST:event_jButtonGetDeviceInfoActionPerformed
 
     private void jButtonVerifyActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButtonVerifyActionPerformed
@@ -796,11 +819,20 @@ public class JSGD extends javax.swing.JFrame {
         }
     }
 
+    // Reusable buffers for memory optimization
+    private BufferedImage reusableCaptureImage;
+    private byte[] reusableImageBuffer;
+
     private void performCaptureAndVerification() {
+        // Initialize reusable buffers on first use
+        if (reusableCaptureImage == null) {
+            reusableCaptureImage = new BufferedImage(deviceInfo.imageWidth, deviceInfo.imageHeight,
+                    BufferedImage.TYPE_BYTE_GRAY);
+            reusableImageBuffer = ((java.awt.image.DataBufferByte) reusableCaptureImage.getRaster().getDataBuffer()).getData();
+        }
+
         // 1. Capturar la imagen de la huella
-        BufferedImage img1gray = new BufferedImage(deviceInfo.imageWidth, deviceInfo.imageHeight,
-                BufferedImage.TYPE_BYTE_GRAY);
-        byte[] imageBuffer1 = ((java.awt.image.DataBufferByte) img1gray.getRaster().getDataBuffer()).getData();
+        byte[] imageBuffer1 = reusableImageBuffer;
         long iError = fplib.GetImageEx(imageBuffer1, 1000, 0, jSliderQuality.getValue());
 
         if (iError != SGFDxErrorCode.SGFDX_ERROR_NONE) {
@@ -814,7 +846,7 @@ public class JSGD extends javax.swing.JFrame {
         // Huella detectada. Mostrar cursor de espera y procesar.
         SwingUtilities.invokeLater(() -> this.setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR)));
         try {
-            SwingUtilities.invokeLater(() -> jLabelImage.setIcon(new ImageIcon(img1gray)));
+            SwingUtilities.invokeLater(() -> jLabelImage.setIcon(new ImageIcon(reusableCaptureImage)));
 
             // 2. Crear la plantilla de la huella capturada
             byte[] capturedTemplate = new byte[400];
