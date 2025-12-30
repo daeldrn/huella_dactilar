@@ -260,7 +260,7 @@ public class JSGD extends javax.swing.JFrame {
         jLabelSpacer1 = new javax.swing.JLabel();
         jLabelSpacer2 = new javax.swing.JLabel();
 
-        setTitle("AllNovu Huella v2.0");
+        setTitle("AllNovu Huella v2.0 Beta");
         addWindowListener(new java.awt.event.WindowAdapter() {
             public void windowClosing(java.awt.event.WindowEvent evt) {
                 exitForm(evt);
@@ -562,22 +562,23 @@ public class JSGD extends javax.swing.JFrame {
 
         Future<?> future = dbExecutor.submit(() -> {
             try (Connection conn = getDBConnection();
-                 PreparedStatement pstmtNombre = conn.prepareStatement(
-                     "SELECT nombre, apellidos FROM trabajadores WHERE carnet_identidad = ?")) {
+                    PreparedStatement pstmtNombre = conn.prepareStatement(
+                            "SELECT nombre, apellidos FROM trabajadores WHERE carnet_identidad = ?")) {
 
                 pstmtNombre.setString(1, carnetIdentidad);
                 try (ResultSet rsNombre = pstmtNombre.executeQuery()) {
                     if (rsNombre.next()) {
                         String nombreCompleto = rsNombre.getString("nombre") + " " + rsNombre.getString("apellidos");
-                        SwingUtilities.invokeLater(() ->
-                            jLabelNombreTrabajador.setText("Nombre del Trabajador: " + nombreCompleto));
+                        SwingUtilities.invokeLater(
+                                () -> jLabelNombreTrabajador.setText("Nombre del Trabajador: " + nombreCompleto));
 
                         // Obtener registro de asistencia del último mes usando prepared statement
                         try (PreparedStatement pstmtAsistencia = conn.prepareStatement(
-                             "SELECT fecha, hora_entrada, hora_salida FROM registro_asistencia ra " +
-                             "JOIN trabajadores t ON ra.trabajador_id = t.id " +
-                             "WHERE t.carnet_identidad = ? AND ra.fecha >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) " +
-                             "ORDER BY ra.fecha DESC")) {
+                                "SELECT fecha, hora_entrada, hora_salida FROM registro_asistencia ra " +
+                                        "JOIN trabajadores t ON ra.trabajador_id = t.id " +
+                                        "WHERE t.carnet_identidad = ? AND ra.fecha >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) "
+                                        +
+                                        "ORDER BY ra.fecha DESC")) {
 
                             pstmtAsistencia.setString(1, carnetIdentidad);
                             try (ResultSet rsAsistencia = pstmtAsistencia.executeQuery()) {
@@ -590,24 +591,22 @@ public class JSGD extends javax.swing.JFrame {
                                 }
                             }
                         }
-                        SwingUtilities.invokeLater(() ->
-                            jLabelStatus.setText("Información de asistencia cargada."));
+                        SwingUtilities.invokeLater(() -> jLabelStatus.setText("Información de asistencia cargada."));
                         logger.info("Información de asistencia cargada para CI: " + carnetIdentidad);
 
                     } else {
-                        SwingUtilities.invokeLater(() ->
-                            jLabelStatus.setText("No se encontró ningún trabajador con el carnet de identidad proporcionado."));
+                        SwingUtilities.invokeLater(() -> jLabelStatus
+                                .setText("No se encontró ningún trabajador con el carnet de identidad proporcionado."));
                         logger.warning("Trabajador no encontrado con CI: " + carnetIdentidad);
                     }
                 }
 
             } catch (SQLException e) {
                 logger.log(Level.SEVERE, "Error al consultar la base de datos", e);
-                SwingUtilities.invokeLater(() ->
-                    jLabelStatus.setText("Error al consultar la base de datos: " + e.getMessage()));
+                SwingUtilities.invokeLater(
+                        () -> jLabelStatus.setText("Error al consultar la base de datos: " + e.getMessage()));
             } finally {
-                SwingUtilities.invokeLater(() ->
-                    this.setCursor(Cursor.getDefaultCursor()));
+                SwingUtilities.invokeLater(() -> this.setCursor(Cursor.getDefaultCursor()));
             }
         });
     }// GEN-LAST:event_jButtonGetDeviceInfoActionPerformed
@@ -623,10 +622,10 @@ public class JSGD extends javax.swing.JFrame {
                 ResultSet rs = pstmt.executeQuery()) {
 
             boolean fingerMatched = false;
-                    while (rs.next()) {
-                        String encodedTemplate = rs.getString("huella_dactilar");
-                        if (encodedTemplate != null && !encodedTemplate.isEmpty()) {
-                            byte[] dbTemplate = getCachedTemplate(encodedTemplate);
+            while (rs.next()) {
+                String encodedTemplate = rs.getString("huella_dactilar");
+                if (encodedTemplate != null && !encodedTemplate.isEmpty()) {
+                    byte[] dbTemplate = getCachedTemplate(encodedTemplate);
 
                     long iError = fplib.MatchTemplate(dbTemplate, vrfMin, secuLevel, matched);
 
@@ -892,7 +891,8 @@ public class JSGD extends javax.swing.JFrame {
         if (reusableCaptureImage == null) {
             reusableCaptureImage = new BufferedImage(deviceInfo.imageWidth, deviceInfo.imageHeight,
                     BufferedImage.TYPE_BYTE_GRAY);
-            reusableImageBuffer = ((java.awt.image.DataBufferByte) reusableCaptureImage.getRaster().getDataBuffer()).getData();
+            reusableImageBuffer = ((java.awt.image.DataBufferByte) reusableCaptureImage.getRaster().getDataBuffer())
+                    .getData();
         }
 
         // 1. Capturar la imagen de la huella
@@ -967,7 +967,8 @@ public class JSGD extends javax.swing.JFrame {
                                                 Image scaledImg = img.getScaledInstance(100, 100, Image.SCALE_SMOOTH);
                                                 fotoLabel.setIcon(new ImageIcon(scaledImg));
                                             } else {
-                                                fotoLabel.setText("Formato de imagen no soportado (posiblemente WEBP). Verifique el formato de la imagen en la base de datos.");
+                                                fotoLabel.setText(
+                                                        "Formato de imagen no soportado (posiblemente WEBP). Verifique el formato de la imagen en la base de datos.");
                                             }
                                         } catch (IOException e) {
                                             fotoLabel.setText("Error al procesar la imagen: " + e.getMessage());
