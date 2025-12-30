@@ -27,10 +27,12 @@ import java.sql.SQLException;
 import java.sql.Time;
 import java.util.Base64;
 import java.util.Calendar;
+import java.util.Map;
 import java.util.Vector;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -72,6 +74,68 @@ public class JSGD extends javax.swing.JFrame {
     private Connection dbConnection;
     private static final Logger logger = Logger.getLogger(JSGD.class.getName());
     private ExecutorService dbExecutor = Executors.newCachedThreadPool();
+
+    // Fingerprint template cache for performance optimization
+    private final Map<String, CachedTemplate> templateCache = new ConcurrentHashMap<>();
+    private static final int CACHE_MAX_SIZE = 1000; // Maximum cache size
+    private static final long CACHE_EXPIRY_MS = 30 * 60 * 1000; // 30 minutes expiry
+
+    // Cached template class for storing decoded fingerprint templates
+    private static class CachedTemplate {
+        private final byte[] template;
+        private final long timestamp;
+
+        public CachedTemplate(byte[] template) {
+            this.template = template.clone(); // Defensive copy
+            this.timestamp = System.currentTimeMillis();
+        }
+
+        public byte[] getTemplate() {
+            return template;
+        }
+
+        public boolean isExpired() {
+            return System.currentTimeMillis() - timestamp > CACHE_EXPIRY_MS;
+        }
+    }
+
+    /**
+     * Get cached fingerprint template or decode from Base64 if not cached
+     */
+    private byte[] getCachedTemplate(String encodedTemplate) {
+        CachedTemplate cached = templateCache.get(encodedTemplate);
+        if (cached != null && !cached.isExpired()) {
+            return cached.getTemplate();
+        }
+
+        // Decode and cache
+        byte[] decodedTemplate = Base64.getDecoder().decode(encodedTemplate);
+
+        // Cache eviction: remove oldest entries if cache is full
+        if (templateCache.size() >= CACHE_MAX_SIZE) {
+            templateCache.entrySet().removeIf(entry -> entry.getValue().isExpired());
+            if (templateCache.size() >= CACHE_MAX_SIZE) {
+                // If still full, remove the first entry (simple LRU approximation)
+                templateCache.entrySet().iterator().remove();
+            }
+        }
+
+        templateCache.put(encodedTemplate, new CachedTemplate(decodedTemplate));
+        logger.fine("Cached fingerprint template for key: " + encodedTemplate.hashCode());
+        return decodedTemplate;
+    }
+
+    /**
+     * Clear expired cache entries
+     */
+    private void cleanExpiredCache() {
+        int beforeSize = templateCache.size();
+        templateCache.entrySet().removeIf(entry -> entry.getValue().isExpired());
+        int removed = beforeSize - templateCache.size();
+        if (removed > 0) {
+            logger.info("Cleaned " + removed + " expired cache entries");
+        }
+    }
 
     /** Creates new form JSGD */
     public JSGD() {
@@ -559,10 +623,10 @@ public class JSGD extends javax.swing.JFrame {
                 ResultSet rs = pstmt.executeQuery()) {
 
             boolean fingerMatched = false;
-            while (rs.next()) {
-                String encodedTemplate = rs.getString("huella_dactilar");
-                if (encodedTemplate != null && !encodedTemplate.isEmpty()) {
-                    byte[] dbTemplate = Base64.getDecoder().decode(encodedTemplate);
+                    while (rs.next()) {
+                        String encodedTemplate = rs.getString("huella_dactilar");
+                        if (encodedTemplate != null && !encodedTemplate.isEmpty()) {
+                            byte[] dbTemplate = getCachedTemplate(encodedTemplate);
 
                     long iError = fplib.MatchTemplate(dbTemplate, vrfMin, secuLevel, matched);
 
