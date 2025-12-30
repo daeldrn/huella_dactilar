@@ -871,10 +871,10 @@ public class JSGD extends javax.swing.JFrame {
                                                 Image scaledImg = img.getScaledInstance(100, 100, Image.SCALE_SMOOTH);
                                                 fotoLabel.setIcon(new ImageIcon(scaledImg));
                                             } else {
-                                                fotoLabel.setText("No se pudo cargar la foto");
+                                                fotoLabel.setText("Formato de imagen no soportado (posiblemente WEBP). Verifique el formato de la imagen en la base de datos.");
                                             }
                                         } catch (IOException e) {
-                                            fotoLabel.setText("Error al procesar la imagen");
+                                            fotoLabel.setText("Error al procesar la imagen: " + e.getMessage());
                                         }
                                     } else {
                                         fotoLabel.setText("No hay foto");

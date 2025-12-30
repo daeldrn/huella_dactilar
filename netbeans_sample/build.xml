@@ -10,6 +10,11 @@
 <project name="FDxSDKPro" default="default" basedir=".">
     <description>Builds, tests, and runs the project FDxSDKPro.</description>
     <import file="nbproject/build-impl.xml"/>
+
+    <target name="-post-init">
+        <property name="javac.classpath" value="${javac.classpath}:lib/webp-imageio-0.2.0.jar"/>
+        <property name="run.classpath" value="${run.classpath}:lib/webp-imageio-0.2.0.jar"/>
+    </target>
     <!--
 
     There exist several targets which are by default empty and which can be 
