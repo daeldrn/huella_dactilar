@@ -263,7 +263,7 @@ public class JSGD extends javax.swing.JFrame {
         jLabelSpacer1 = new javax.swing.JLabel();
         jLabelSpacer2 = new javax.swing.JLabel();
 
-        setTitle("AllNovu Huella v2.2");
+        setTitle("AllNovu Huella v2.3");
         addWindowListener(new java.awt.event.WindowAdapter() {
             public void windowClosing(java.awt.event.WindowEvent evt) {
                 exitForm(evt);
@@ -959,8 +959,8 @@ public class JSGD extends javax.swing.JFrame {
                                 String etiquetaFecha = "Fecha/Hora " + tipoRegistro;
 
                                 SwingUtilities.invokeLater(() -> {
-                                    JPanel panel = new JPanel(new BorderLayout(15, 15));
-                                    panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+                                    JPanel panel = new JPanel(new BorderLayout(25, 25));
+                                    panel.setBorder(BorderFactory.createEmptyBorder(30, 30, 30, 30));
 
                                     JLabel fotoLabel = new JLabel();
                                     if (fotoBytes != null && fotoBytes.length > 0) {
@@ -968,37 +968,44 @@ public class JSGD extends javax.swing.JFrame {
                                             ByteArrayInputStream bis = new ByteArrayInputStream(fotoBytes);
                                             BufferedImage img = ImageIO.read(bis);
                                             if (img != null) {
-                                                Image scaledImg = img.getScaledInstance(100, 100, Image.SCALE_SMOOTH);
+                                                // Aumentar el tamaño de la foto a 250x250
+                                                Image scaledImg = img.getScaledInstance(250, 250, Image.SCALE_SMOOTH);
                                                 fotoLabel.setIcon(new ImageIcon(scaledImg));
                                             } else {
                                                 fotoLabel.setText(
                                                         "Formato de imagen no soportado (posiblemente WEBP). Verifique el formato de la imagen en la base de datos.");
+                                                fotoLabel.setFont(new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 14));
                                             }
                                         } catch (IOException e) {
                                             fotoLabel.setText("Error al procesar la imagen: " + e.getMessage());
+                                            fotoLabel.setFont(new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 14));
                                         }
                                     } else {
                                         fotoLabel.setText("No hay foto");
+                                        fotoLabel.setFont(new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 16));
                                     }
                                     if (fotoLabel.getIcon() == null) {
-                                        fotoLabel.setPreferredSize(new Dimension(100, 100));
+                                        fotoLabel.setPreferredSize(new Dimension(250, 250));
                                         fotoLabel.setHorizontalAlignment(JLabel.CENTER);
-                                        fotoLabel.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+                                        fotoLabel.setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
                                     }
                                     panel.add(fotoLabel, BorderLayout.WEST);
 
-                                    String mensajeCompleto = "<html><b>Trabajador:</b> " + nombre + " " + apellidos
-                                            + "<br>" +
-                                            "<b>Carnet de Identidad:</b> " + carnet + "<br>" +
-                                            "<b>" + etiquetaFecha + ":</b> " + fechaHora + "<br>" +
-                                            "<b>Registro:</b> " + mensajeAsistencia + "</html>";
+                                    String mensajeCompleto = "<html><div style='padding: 10px;'>" +
+                                            "<div style='font-size: 20px; font-weight: bold; margin-bottom: 15px;'>" + nombre + " " + apellidos + "</div>" +
+                                            "<div style='font-size: 16px; margin-bottom: 10px;'><b>Carnet de Identidad:</b> " + carnet + "</div>" +
+                                            "<div style='font-size: 16px; margin-bottom: 10px;'><b>" + etiquetaFecha + ":</b> " + fechaHora + "</div>" +
+                                            "<div style='font-size: 16px; margin-top: 15px; color: #0064B4;'><b>Registro:</b> " + mensajeAsistencia + "</div>" +
+                                            "</div></html>";
                                     JLabel infoLabel = new JLabel(mensajeCompleto);
+                                    infoLabel.setFont(new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 16));
                                     panel.add(infoLabel, BorderLayout.CENTER);
 
                                     // Usar un JDialog no modal para no bloquear el hilo de captura
                                     JDialog dialog = new JDialog(this, "Confirmación de Registro", false); // false for
                                                                                                            // non-modal
                                     dialog.setContentPane(panel);
+                                    dialog.setResizable(false);
                                     dialog.pack();
                                     dialog.setLocationRelativeTo(this); // Center relative to the main frame
                                     dialog.setVisible(true);
