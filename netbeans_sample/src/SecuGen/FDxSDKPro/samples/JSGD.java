@@ -227,12 +227,15 @@ public class JSGD extends javax.swing.JFrame {
         jLabelImage = new javax.swing.JLabel();
         jButtonToggleLED = new javax.swing.JButton();
         jButtonCapture = new javax.swing.JButton();
-        jSliderQuality = new javax.swing.JSlider();
-        jLabel2 = new javax.swing.JLabel();
-        jLabel3 = new javax.swing.JLabel();
-        jSliderSeconds = new javax.swing.JSlider();
         jButtonClose = new javax.swing.JButton();
         jPanelRegisterVerify = new javax.swing.JPanel();
+        jPanelAjustes = new javax.swing.JPanel();
+        jComboBoxDeviceName = new javax.swing.JComboBox();
+        jLabelDeviceName = new javax.swing.JLabel();
+        jSliderQuality = new javax.swing.JSlider();
+        jLabel2 = new javax.swing.JLabel();
+        jSliderSeconds = new javax.swing.JSlider();
+        jLabel3 = new javax.swing.JLabel();
         jLabelSecurityLevel = new javax.swing.JLabel();
         jLabelRegistration = new javax.swing.JLabel();
         jLabelVerification = new javax.swing.JLabel();
@@ -292,7 +295,9 @@ public class JSGD extends javax.swing.JFrame {
         jLabelImage.setBorder(javax.swing.BorderFactory.createBevelBorder(javax.swing.border.BevelBorder.LOWERED));
         jLabelImage.setMinimumSize(new java.awt.Dimension(260, 300));
         jLabelImage.setPreferredSize(new java.awt.Dimension(260, 300));
-        jPanelImage.add(jLabelImage, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 60, -1, -1));
+        jLabelImage.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        jLabelImage.setVerticalAlignment(javax.swing.SwingConstants.CENTER);
+        jPanelImage.add(jLabelImage, new org.netbeans.lib.awtextra.AbsoluteConstraints(135, 60, -1, -1));
 
         jButtonToggleLED.setText("LED");
         jButtonToggleLED.setMaximumSize(new java.awt.Dimension(100, 30));
@@ -315,28 +320,6 @@ public class JSGD extends javax.swing.JFrame {
             }
         });
         jPanelImage.add(jButtonCapture, new org.netbeans.lib.awtextra.AbsoluteConstraints(260, 10, 125, 30));
-
-        jSliderQuality.setMajorTickSpacing(10);
-        jSliderQuality.setMinorTickSpacing(5);
-        jSliderQuality.setPaintLabels(true);
-        jSliderQuality.setPaintTicks(true);
-        jSliderQuality.setName(""); // NOI18N
-        jSliderQuality.setOpaque(false);
-        jPanelImage.add(jSliderQuality, new org.netbeans.lib.awtextra.AbsoluteConstraints(270, 170, 220, -1));
-
-        jLabel2.setText("Calidad de Imagen");
-        jPanelImage.add(jLabel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 150, -1, -1));
-
-        jLabel3.setText("Tiempo de espera (segundos)");
-        jPanelImage.add(jLabel3, new org.netbeans.lib.awtextra.AbsoluteConstraints(290, 230, -1, -1));
-
-        jSliderSeconds.setMajorTickSpacing(1);
-        jSliderSeconds.setMaximum(10);
-        jSliderSeconds.setMinimum(1);
-        jSliderSeconds.setPaintLabels(true);
-        jSliderSeconds.setPaintTicks(true);
-        jSliderSeconds.setValue(5);
-        jPanelImage.add(jSliderSeconds, new org.netbeans.lib.awtextra.AbsoluteConstraints(270, 250, 220, -1));
 
         jButtonClose.setText("Cerrar");
         jButtonClose.addActionListener(new java.awt.event.ActionListener() {
@@ -514,16 +497,42 @@ public class JSGD extends javax.swing.JFrame {
 
         jTabbedPane1.addTab("Información del Trabajador", jPanelDeviceInfo);
 
-        getContentPane().add(jTabbedPane1, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 35, 530, 420));
+        jPanelAjustes.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
+
+        jLabelDeviceName.setText("Nombre del Dispositivo");
+        jPanelAjustes.add(jLabelDeviceName, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 30, 130, -1));
 
         jComboBoxDeviceName.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "AUTO", "HU20-AP", "HU20-A",
                 "HU10-AP", "HU10", "HUPX", "HU20", "HSDU04P", "HSDU03P", "HFDU02" }));
         jComboBoxDeviceName.setMinimumSize(new java.awt.Dimension(350, 10));
         jComboBoxDeviceName.setVerifyInputWhenFocusTarget(false);
-        getContentPane().add(jComboBoxDeviceName, new org.netbeans.lib.awtextra.AbsoluteConstraints(130, 10, 350, -1));
+        jPanelAjustes.add(jComboBoxDeviceName, new org.netbeans.lib.awtextra.AbsoluteConstraints(150, 30, 350, -1));
 
-        jLabelDeviceName.setText("Nombre del Dispositivo");
-        getContentPane().add(jLabelDeviceName, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 11, 110, -1));
+        jLabel2.setText("Calidad de Imagen");
+        jPanelAjustes.add(jLabel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 100, -1, -1));
+
+        jSliderQuality.setMajorTickSpacing(10);
+        jSliderQuality.setMinorTickSpacing(5);
+        jSliderQuality.setPaintLabels(true);
+        jSliderQuality.setPaintTicks(true);
+        jSliderQuality.setName(""); // NOI18N
+        jSliderQuality.setOpaque(false);
+        jPanelAjustes.add(jSliderQuality, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 120, 480, -1));
+
+        jLabel3.setText("Tiempo de espera (segundos)");
+        jPanelAjustes.add(jLabel3, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 200, -1, -1));
+
+        jSliderSeconds.setMajorTickSpacing(1);
+        jSliderSeconds.setMaximum(10);
+        jSliderSeconds.setMinimum(1);
+        jSliderSeconds.setPaintLabels(true);
+        jSliderSeconds.setPaintTicks(true);
+        jSliderSeconds.setValue(5);
+        jPanelAjustes.add(jSliderSeconds, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 220, 480, -1));
+
+        jTabbedPane1.addTab("Ajustes", jPanelAjustes);
+
+        getContentPane().add(jTabbedPane1, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 10, 530, 420));
 
         jLabelSpacer1.setText(" ");
         getContentPane().add(jLabelSpacer1, new org.netbeans.lib.awtextra.AbsoluteConstraints(510, 490, 10, -1));
@@ -1380,6 +1389,7 @@ public class JSGD extends javax.swing.JFrame {
     private javax.swing.JLabel jLabelVerification;
     private javax.swing.JLabel jLabelVerificationBox;
     private javax.swing.JLabel jLabelVerifyImage;
+    private javax.swing.JPanel jPanelAjustes;
     private javax.swing.JPanel jPanelDeviceInfo;
     private javax.swing.JPanel jPanelImage;
     private javax.swing.JPanel jPanelRegisterVerify;
@@ -1474,6 +1484,9 @@ public class JSGD extends javax.swing.JFrame {
         }
         if (jPanelDeviceInfo != null) {
             jPanelDeviceInfo.setBackground(grisFondo);
+        }
+        if (jPanelAjustes != null) {
+            jPanelAjustes.setBackground(grisFondo);
         }
         
         // Tabbed pane: fondo gris claro Windows 11
