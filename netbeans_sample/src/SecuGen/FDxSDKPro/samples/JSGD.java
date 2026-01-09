@@ -144,6 +144,9 @@ public class JSGD extends javax.swing.JFrame {
         disableControls();
         this.jComboBoxRegisterSecurityLevel.setSelectedIndex(4);
         this.jComboBoxVerifySecurityLevel.setSelectedIndex(4);
+        
+        // Aplicar estilos adicionales después de inicializar componentes
+        applyCustomStyles();
 
         // Add shutdown hook to clean up resources
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -260,7 +263,7 @@ public class JSGD extends javax.swing.JFrame {
         jLabelSpacer1 = new javax.swing.JLabel();
         jLabelSpacer2 = new javax.swing.JLabel();
 
-        setTitle("AllNovu Huella v2.0 Beta");
+        setTitle("AllNovu Huella v2.1");
         addWindowListener(new java.awt.event.WindowAdapter() {
             public void windowClosing(java.awt.event.WindowEvent evt) {
                 exitForm(evt);
@@ -1188,7 +1191,133 @@ public class JSGD extends javax.swing.JFrame {
      * @param args the command line arguments
      */
     public static void main(String args[]) {
-        new JSGD().setVisible(true);
+        // Aplicar Look and Feel moderno
+        try {
+            // Intentar usar FlatLaf si está disponible
+            try {
+                Class<?> lafClass = Class.forName("com.formdev.flatlaf.FlatLightLaf");
+                javax.swing.UIManager.setLookAndFeel((javax.swing.LookAndFeel) lafClass.getDeclaredConstructor().newInstance());
+            } catch (ClassNotFoundException e) {
+                // Si FlatLaf no está disponible, usar Nimbus (incluido en Java)
+                for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
+                    if ("Nimbus".equals(info.getName())) {
+                        javax.swing.UIManager.setLookAndFeel(info.getClassName());
+                        break;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Si falla, usar el Look and Feel por defecto del sistema
+            try {
+                javax.swing.UIManager.setLookAndFeel(javax.swing.UIManager.getSystemLookAndFeelClassName());
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
+        
+        // Personalizar colores y estilos
+        customizeUI();
+        
+        // Crear y mostrar la ventana principal
+        java.awt.EventQueue.invokeLater(new Runnable() {
+            public void run() {
+                new JSGD().setVisible(true);
+            }
+        });
+    }
+    
+    /**
+     * Personaliza los colores y estilos de la interfaz
+     * Estilo: Windows 11 Fluent Design
+     */
+    private static void customizeUI() {
+        // Colores Windows 11 Fluent Design (azul más oscuro)
+        java.awt.Color azulWindows11 = new java.awt.Color(0, 100, 180); // Azul más oscuro
+        java.awt.Color azulWindows11Hover = new java.awt.Color(0, 85, 160); // Hover más oscuro
+        java.awt.Color azulWindows11Pressed = new java.awt.Color(0, 75, 140); // Presionado más oscuro
+        java.awt.Color grisFondo = new java.awt.Color(243, 243, 243); // #F3F3F3 - Fondo gris claro Windows 11
+        java.awt.Color grisBorde = new java.awt.Color(201, 201, 201); // #C9C9C9 - Bordes sutiles
+        java.awt.Color grisTexto = new java.awt.Color(32, 32, 32); // #202020 - Texto principal
+        java.awt.Color grisTextoSecundario = new java.awt.Color(96, 96, 96); // #606060 - Texto secundario
+        
+        // Fondos Windows 11
+        javax.swing.UIManager.put("Panel.background", grisFondo);
+        javax.swing.UIManager.put("Frame.background", grisFondo);
+        javax.swing.UIManager.put("Dialog.background", grisFondo);
+        javax.swing.UIManager.put("Viewport.background", java.awt.Color.WHITE);
+        
+        // Botones Windows 11: estilo Fluent Design
+        javax.swing.UIManager.put("Button.background", azulWindows11);
+        javax.swing.UIManager.put("Button.foreground", java.awt.Color.WHITE);
+        javax.swing.UIManager.put("Button.select", azulWindows11Hover);
+        javax.swing.UIManager.put("Button.font", new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 13));
+        javax.swing.UIManager.put("Button.border", javax.swing.BorderFactory.createEmptyBorder(8, 16, 8, 16));
+        
+        // Campos de texto Windows 11: fondo blanco, bordes sutiles
+        javax.swing.UIManager.put("TextField.background", java.awt.Color.WHITE);
+        javax.swing.UIManager.put("TextField.border", javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(grisBorde, 1),
+            javax.swing.BorderFactory.createEmptyBorder(6, 8, 6, 8)
+        ));
+        javax.swing.UIManager.put("TextField.font", new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 13));
+        javax.swing.UIManager.put("TextField.foreground", grisTexto);
+        javax.swing.UIManager.put("TextField.selectionBackground", azulWindows11);
+        javax.swing.UIManager.put("TextField.selectionForeground", java.awt.Color.WHITE);
+        
+        // Tabbed pane Windows 11: estilo moderno
+        javax.swing.UIManager.put("TabbedPane.selected", azulWindows11);
+        javax.swing.UIManager.put("TabbedPane.selectedForeground", java.awt.Color.WHITE);
+        javax.swing.UIManager.put("TabbedPane.background", grisFondo);
+        javax.swing.UIManager.put("TabbedPane.foreground", grisTexto);
+        javax.swing.UIManager.put("TabbedPane.unselectedBackground", grisFondo);
+        javax.swing.UIManager.put("TabbedPane.contentAreaColor", java.awt.Color.WHITE);
+        javax.swing.UIManager.put("TabbedPane.font", new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 13));
+        
+        // Labels Windows 11
+        javax.swing.UIManager.put("Label.font", new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 13));
+        javax.swing.UIManager.put("Label.foreground", grisTexto);
+        javax.swing.UIManager.put("Label.background", grisFondo);
+        
+        // Progress bar Windows 11: azul de acento
+        javax.swing.UIManager.put("ProgressBar.foreground", azulWindows11);
+        javax.swing.UIManager.put("ProgressBar.background", new java.awt.Color(237, 237, 237));
+        javax.swing.UIManager.put("ProgressBar.borderColor", grisBorde);
+        
+        // Combo box Windows 11: fondo blanco, bordes sutiles
+        javax.swing.UIManager.put("ComboBox.background", java.awt.Color.WHITE);
+        javax.swing.UIManager.put("ComboBox.font", new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 13));
+        javax.swing.UIManager.put("ComboBox.foreground", grisTexto);
+        javax.swing.UIManager.put("ComboBox.border", javax.swing.BorderFactory.createLineBorder(grisBorde, 1));
+        javax.swing.UIManager.put("ComboBox.selectionBackground", azulWindows11);
+        javax.swing.UIManager.put("ComboBox.selectionForeground", java.awt.Color.WHITE);
+        
+        // Tabla Windows 11: estilo moderno
+        javax.swing.UIManager.put("Table.background", java.awt.Color.WHITE);
+        javax.swing.UIManager.put("Table.foreground", grisTexto);
+        javax.swing.UIManager.put("Table.gridColor", new java.awt.Color(237, 237, 237));
+        javax.swing.UIManager.put("Table.font", new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 12));
+        javax.swing.UIManager.put("TableHeader.background", new java.awt.Color(250, 250, 250));
+        javax.swing.UIManager.put("TableHeader.foreground", grisTexto);
+        javax.swing.UIManager.put("TableHeader.font", new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 12));
+        javax.swing.UIManager.put("Table.selectionBackground", azulWindows11);
+        javax.swing.UIManager.put("Table.selectionForeground", java.awt.Color.WHITE);
+        
+        // Slider Windows 11: azul de acento
+        javax.swing.UIManager.put("Slider.foreground", azulWindows11);
+        javax.swing.UIManager.put("Slider.background", grisFondo);
+        javax.swing.UIManager.put("Slider.track", new java.awt.Color(237, 237, 237));
+        
+        // Scroll pane Windows 11: fondo blanco, bordes sutiles
+        javax.swing.UIManager.put("ScrollPane.background", java.awt.Color.WHITE);
+        javax.swing.UIManager.put("ScrollPane.border", javax.swing.BorderFactory.createLineBorder(grisBorde, 1));
+        javax.swing.UIManager.put("ScrollBar.background", grisFondo);
+        javax.swing.UIManager.put("ScrollBar.thumb", new java.awt.Color(200, 200, 200));
+        javax.swing.UIManager.put("ScrollBar.thumbDarkShadow", new java.awt.Color(150, 150, 150));
+        
+        // Titled border Windows 11: estilo sutil
+        javax.swing.UIManager.put("TitledBorder.titleColor", grisTexto);
+        javax.swing.UIManager.put("TitledBorder.border", javax.swing.BorderFactory.createLineBorder(grisBorde, 1));
+        javax.swing.UIManager.put("TitledBorder.font", new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 12));
     }
 
     private void saveFingerprint(String carnetIdentidad, byte[] fingerprintTemplate) {
@@ -1254,5 +1383,192 @@ public class JSGD extends javax.swing.JFrame {
     private javax.swing.JTable jTableAsistencia;
     private javax.swing.JTextField jTextFieldCarnet;
     // End of variables declaration//GEN-END:variables
+
+    /**
+     * Aplica estilos personalizados a los componentes de la interfaz
+     * Estilo: Windows 11 Fluent Design
+     */
+    private void applyCustomStyles() {
+        // Colores Windows 11 Fluent Design (azul más oscuro)
+        java.awt.Color azulWindows11 = new java.awt.Color(0, 100, 180); // Azul más oscuro
+        java.awt.Color azulWindows11Hover = new java.awt.Color(0, 85, 160); // Hover más oscuro
+        java.awt.Color azulWindows11Pressed = new java.awt.Color(0, 75, 140); // Presionado más oscuro
+        java.awt.Color grisFondo = new java.awt.Color(243, 243, 243); // #F3F3F3
+        java.awt.Color grisBorde = new java.awt.Color(201, 201, 201); // #C9C9C9
+        java.awt.Color grisTexto = new java.awt.Color(32, 32, 32); // #202020
+        
+        // Estilizar botones principales con estilo Windows 11
+        styleButton(jButtonInit, azulWindows11, azulWindows11Hover, azulWindows11Pressed);
+        styleButton(jButtonToggleLED, azulWindows11, azulWindows11Hover, azulWindows11Pressed);
+        styleButton(jButtonCapture, azulWindows11, azulWindows11Hover, azulWindows11Pressed);
+        styleButton(jButtonClose, azulWindows11, azulWindows11Hover, azulWindows11Pressed);
+        styleButton(jButtonRegister, azulWindows11, azulWindows11Hover, azulWindows11Pressed);
+        styleButton(jButtonVerify, azulWindows11, azulWindows11Hover, azulWindows11Pressed);
+        styleButton(jButtonGetDeviceInfo, azulWindows11, azulWindows11Hover, azulWindows11Pressed);
+        
+        // Estilizar botones de captura con estilo Windows 11
+        styleButton(jButtonCaptureR1, azulWindows11, azulWindows11Hover, azulWindows11Pressed);
+        styleButton(jButtonCaptureR2, azulWindows11, azulWindows11Hover, azulWindows11Pressed);
+        styleButton(jButtonCaptureV1, azulWindows11, azulWindows11Hover, azulWindows11Pressed);
+        
+        // Barra de estado: estilo Windows 11
+        jLabelStatus.setFont(new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 12));
+        jLabelStatus.setBackground(grisFondo);
+        jLabelStatus.setForeground(grisTexto);
+        jLabelStatus.setOpaque(true);
+        jLabelStatus.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(grisBorde, 1),
+            javax.swing.BorderFactory.createEmptyBorder(8, 12, 8, 12)
+        ));
+        
+        // Paneles con imágenes: estilo Windows 11
+        styleImageLabel(jLabelImage, grisBorde);
+        styleImageLabel(jLabelRegisterImage1, grisBorde);
+        styleImageLabel(jLabelRegisterImage2, grisBorde);
+        styleImageLabel(jLabelVerifyImage, grisBorde);
+        
+        // Tabla: estilo Windows 11
+        if (jTableAsistencia != null) {
+            jTableAsistencia.setRowHeight(32);
+            jTableAsistencia.setFont(new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 12));
+            jTableAsistencia.setBackground(java.awt.Color.WHITE);
+            jTableAsistencia.setForeground(grisTexto);
+            jTableAsistencia.setGridColor(new java.awt.Color(237, 237, 237));
+            jTableAsistencia.setShowGrid(true);
+            jTableAsistencia.setIntercellSpacing(new java.awt.Dimension(0, 0));
+            jTableAsistencia.setSelectionBackground(azulWindows11);
+            jTableAsistencia.setSelectionForeground(java.awt.Color.WHITE);
+            jTableAsistencia.getTableHeader().setFont(new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 12));
+            jTableAsistencia.getTableHeader().setBackground(new java.awt.Color(250, 250, 250));
+            jTableAsistencia.getTableHeader().setForeground(grisTexto);
+            jTableAsistencia.getTableHeader().setReorderingAllowed(false);
+        }
+        
+        // Campos de texto: estilo Windows 11
+        if (jTextFieldCarnet != null) {
+            jTextFieldCarnet.setFont(new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 13));
+            jTextFieldCarnet.setBackground(java.awt.Color.WHITE);
+            jTextFieldCarnet.setForeground(grisTexto);
+            jTextFieldCarnet.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createLineBorder(grisBorde, 1),
+                javax.swing.BorderFactory.createEmptyBorder(6, 8, 6, 8)
+            ));
+        }
+        
+        // Paneles principales: fondo gris claro Windows 11
+        if (jPanelImage != null) {
+            jPanelImage.setBackground(grisFondo);
+        }
+        if (jPanelRegisterVerify != null) {
+            jPanelRegisterVerify.setBackground(grisFondo);
+        }
+        if (jPanelDeviceInfo != null) {
+            jPanelDeviceInfo.setBackground(grisFondo);
+        }
+        
+        // Tabbed pane: fondo gris claro Windows 11
+        if (jTabbedPane1 != null) {
+            jTabbedPane1.setBackground(grisFondo);
+        }
+        
+        // Progress bars: azul Windows 11
+        if (jProgressBarR1 != null) {
+            jProgressBarR1.setBackground(new java.awt.Color(237, 237, 237));
+            jProgressBarR1.setForeground(azulWindows11);
+            jProgressBarR1.setBorderPainted(false);
+        }
+        if (jProgressBarR2 != null) {
+            jProgressBarR2.setBackground(new java.awt.Color(237, 237, 237));
+            jProgressBarR2.setForeground(azulWindows11);
+            jProgressBarR2.setBorderPainted(false);
+        }
+        if (jProgressBarV1 != null) {
+            jProgressBarV1.setBackground(new java.awt.Color(237, 237, 237));
+            jProgressBarV1.setForeground(azulWindows11);
+            jProgressBarV1.setBorderPainted(false);
+        }
+        
+        // Combo boxes: estilo Windows 11
+        if (jComboBoxDeviceName != null) {
+            jComboBoxDeviceName.setBackground(java.awt.Color.WHITE);
+            jComboBoxDeviceName.setForeground(grisTexto);
+            jComboBoxDeviceName.setFont(new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 13));
+            jComboBoxDeviceName.setBorder(javax.swing.BorderFactory.createLineBorder(grisBorde, 1));
+        }
+        if (jComboBoxRegisterSecurityLevel != null) {
+            jComboBoxRegisterSecurityLevel.setBackground(java.awt.Color.WHITE);
+            jComboBoxRegisterSecurityLevel.setForeground(grisTexto);
+            jComboBoxRegisterSecurityLevel.setFont(new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 13));
+            jComboBoxRegisterSecurityLevel.setBorder(javax.swing.BorderFactory.createLineBorder(grisBorde, 1));
+        }
+        if (jComboBoxVerifySecurityLevel != null) {
+            jComboBoxVerifySecurityLevel.setBackground(java.awt.Color.WHITE);
+            jComboBoxVerifySecurityLevel.setForeground(grisTexto);
+            jComboBoxVerifySecurityLevel.setFont(new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 13));
+            jComboBoxVerifySecurityLevel.setBorder(javax.swing.BorderFactory.createLineBorder(grisBorde, 1));
+        }
+    }
+    
+    /**
+     * Estiliza un botón con estilo Windows 11 Fluent Design
+     */
+    private void styleButton(javax.swing.JButton button, java.awt.Color color, java.awt.Color hoverColor, java.awt.Color pressedColor) {
+        if (button != null) {
+            button.setBackground(color);
+            button.setForeground(java.awt.Color.WHITE);
+            button.setFont(new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 13));
+            button.setFocusPainted(false);
+            button.setBorderPainted(false);
+            // Padding estilo Windows 11
+            button.setBorder(javax.swing.BorderFactory.createEmptyBorder(8, 16, 8, 16));
+            
+            // Efectos hover y pressed estilo Windows 11
+            final java.awt.Color colorOriginal = color;
+            button.addMouseListener(new java.awt.event.MouseAdapter() {
+                @Override
+                public void mouseEntered(java.awt.event.MouseEvent evt) {
+                    if (button.isEnabled()) {
+                        button.setBackground(hoverColor);
+                    }
+                }
+                
+                @Override
+                public void mouseExited(java.awt.event.MouseEvent evt) {
+                    if (button.isEnabled()) {
+                        button.setBackground(colorOriginal);
+                    }
+                }
+                
+                @Override
+                public void mousePressed(java.awt.event.MouseEvent evt) {
+                    if (button.isEnabled()) {
+                        button.setBackground(pressedColor);
+                    }
+                }
+                
+                @Override
+                public void mouseReleased(java.awt.event.MouseEvent evt) {
+                    if (button.isEnabled()) {
+                        button.setBackground(hoverColor);
+                    }
+                }
+            });
+        }
+    }
+    
+    /**
+     * Estiliza una etiqueta que muestra imágenes: estilo Windows 11
+     */
+    private void styleImageLabel(javax.swing.JLabel label, java.awt.Color bordeColor) {
+        if (label != null) {
+            // Borde sutil estilo Windows 11
+            label.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createLineBorder(bordeColor, 1),
+                javax.swing.BorderFactory.createEmptyBorder(8, 8, 8, 8)
+            ));
+            label.setBackground(java.awt.Color.WHITE);
+            label.setOpaque(true);
+        }
+    }
 
 }

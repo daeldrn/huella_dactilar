@@ -12,8 +12,8 @@
     <import file="nbproject/build-impl.xml"/>
 
     <target name="-post-init">
-        <property name="javac.classpath" value="${javac.classpath}:lib/webp-imageio-0.2.0.jar"/>
-        <property name="run.classpath" value="${run.classpath}:lib/webp-imageio-0.2.0.jar"/>
+        <property name="javac.classpath" value="${javac.classpath}:lib/webp-imageio-0.2.0.jar:lib/flatlaf-3.2.5.jar"/>
+        <property name="run.classpath" value="${run.classpath}:lib/webp-imageio-0.2.0.jar:lib/flatlaf-3.2.5.jar"/>
     </target>
     <!--
 
