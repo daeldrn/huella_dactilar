@@ -266,7 +266,7 @@ public class JSGD extends javax.swing.JFrame {
         jLabelSpacer1 = new javax.swing.JLabel();
         jLabelSpacer2 = new javax.swing.JLabel();
 
-        setTitle("AllNovu Huella v2.3");
+        setTitle("AllNovu Huella v2.5");
         addWindowListener(new java.awt.event.WindowAdapter() {
             public void windowClosing(java.awt.event.WindowEvent evt) {
                 exitForm(evt);
