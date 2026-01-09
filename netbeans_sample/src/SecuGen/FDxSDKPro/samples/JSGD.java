@@ -263,7 +263,7 @@ public class JSGD extends javax.swing.JFrame {
         jLabelSpacer1 = new javax.swing.JLabel();
         jLabelSpacer2 = new javax.swing.JLabel();
 
-        setTitle("AllNovu Huella v2.1");
+        setTitle("AllNovu Huella v2.2");
         addWindowListener(new java.awt.event.WindowAdapter() {
             public void windowClosing(java.awt.event.WindowEvent evt) {
                 exitForm(evt);
@@ -646,6 +646,7 @@ public class JSGD extends javax.swing.JFrame {
 
             if (!fingerMatched) {
                 this.jLabelStatus.setText("Fallo de Verificación. Huella no encontrada.");
+                mostrarErrorHuellaNoEncontrada("Fallo de Verificación. Huella no encontrada.");
             }
         } catch (SQLException e) {
             this.jLabelStatus.setText("Error al verificar la huella dactilar: " + e.getMessage());
@@ -1026,8 +1027,10 @@ public class JSGD extends javax.swing.JFrame {
                         }
                     }
                     if (!fingerMatched) {
-                        SwingUtilities
-                                .invokeLater(() -> jLabelStatus.setText("Huella no encontrada en la base de datos."));
+                        SwingUtilities.invokeLater(() -> {
+                            jLabelStatus.setText("Huella no encontrada en la base de datos.");
+                            mostrarErrorHuellaNoEncontrada("Huella no encontrada en la base de datos.");
+                        });
                     }
                 }
             } catch (SQLException e) {
@@ -1569,6 +1572,48 @@ public class JSGD extends javax.swing.JFrame {
             label.setBackground(java.awt.Color.WHITE);
             label.setOpaque(true);
         }
+    }
+
+    /**
+     * Muestra un modal de error cuando no se encuentra una huella
+     * Se cierra automáticamente después del tiempo configurado en el slider
+     */
+    private void mostrarErrorHuellaNoEncontrada(String mensaje) {
+        JPanel panel = new JPanel(new BorderLayout(15, 15));
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        
+        // Icono de error
+        JLabel iconLabel = new JLabel();
+        iconLabel.setIcon(UIManager.getIcon("OptionPane.errorIcon"));
+        iconLabel.setHorizontalAlignment(JLabel.CENTER);
+        panel.add(iconLabel, BorderLayout.WEST);
+        
+        // Mensaje de error
+        JLabel mensajeLabel = new JLabel("<html><div style='text-align: center;'><b>Error</b><br><br>" + 
+                                         mensaje + "<br><br>Por favor, intente nuevamente.</div></html>");
+        mensajeLabel.setFont(new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 13));
+        mensajeLabel.setHorizontalAlignment(JLabel.CENTER);
+        panel.add(mensajeLabel, BorderLayout.CENTER);
+        
+        // Crear el diálogo no-modal (para que no bloquee el hilo)
+        JDialog dialog = new JDialog(this, "Error de Verificación", false);
+        
+        // Configurar el diálogo
+        dialog.setContentPane(panel);
+        dialog.setResizable(false);
+        dialog.pack();
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+        
+        // Cerrar automáticamente después del tiempo configurado en el slider
+        int tiempoEspera = jSliderSeconds.getValue() * 1000; // Convertir segundos a milisegundos
+        javax.swing.Timer timer = new javax.swing.Timer(tiempoEspera, e -> {
+            if (dialog.isVisible()) {
+                dialog.dispose();
+            }
+        });
+        timer.setRepeats(false); // Solo ejecutar una vez
+        timer.start();
     }
 
 }
