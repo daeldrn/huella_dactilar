@@ -27,6 +27,7 @@ import java.sql.SQLException;
 import java.sql.Time;
 import java.util.Base64;
 import java.util.Calendar;
+import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 import javax.swing.JScrollPane;
@@ -63,6 +64,13 @@ public class JSGD extends javax.swing.JFrame {
     private boolean v1Captured = false;
     private SwingWorker<Void, Void> captureWorker;
     private volatile boolean isCapturing = false;
+
+    // Auto-initialization components
+    private JDialog progressDialog;
+    private JLabel progressLabel;
+    private JProgressBar progressBar;
+    private boolean autoInitAttempted = false;
+    private boolean autoCaptureActive = false;
     private static int MINIMUM_QUALITY = 60; // User defined
     private static int MINIMUM_NUM_MINUTIAE = 20; // User defined
     private static int MAXIMUM_NFIQ = 2; // User defined
@@ -144,9 +152,25 @@ public class JSGD extends javax.swing.JFrame {
         disableControls();
         this.jComboBoxRegisterSecurityLevel.setSelectedIndex(4);
         this.jComboBoxVerifySecurityLevel.setSelectedIndex(4);
-        
+
         // Aplicar estilos adicionales después de inicializar componentes
         applyCustomStyles();
+
+        // Cambiar el texto inicial para reflejar inicialización automática
+        jLabelStatus.setText("Inicializando dispositivo automáticamente...");
+
+        // Agregar listener para inicialización automática cuando la ventana esté lista
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowOpened(java.awt.event.WindowEvent evt) {
+                // Pequeño delay para asegurar que la UI esté completamente renderizada
+                SwingUtilities.invokeLater(() -> {
+                    if (!autoInitAttempted) {
+                        startAutoInitialization();
+                    }
+                });
+            }
+        });
 
         // Add shutdown hook to clean up resources
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -211,6 +235,288 @@ public class JSGD extends javax.swing.JFrame {
     }
 
     /**
+     * Método separado para la inicialización del dispositivo
+     * Utilizado tanto para inicialización automática como manual
+     */
+    private boolean performDeviceInitialization() {
+        int selectedDevice = jComboBoxDeviceName.getSelectedIndex();
+        // AUTO
+        // FDU08 Hamster Pro 20A
+        // FDU07A Hamster Pro 10AP
+        // etc...
+        switch (selectedDevice) {
+            case 0: // USB
+            default:
+                this.deviceName = SGFDxDeviceName.SG_DEV_AUTO;
+                break;
+            case 1: // HU20-AP
+                this.deviceName = SGFDxDeviceName.SG_DEV_FDU08;
+                break;
+            case 2: // HU20-A
+                this.deviceName = SGFDxDeviceName.SG_DEV_FDU08;
+                break;
+            case 3: // HU10-AP
+                this.deviceName = SGFDxDeviceName.SG_DEV_FDU07A;
+                break;
+            case 4: // HU10
+                this.deviceName = SGFDxDeviceName.SG_DEV_FDU07;
+                break;
+            case 5: // HUPX
+                this.deviceName = SGFDxDeviceName.SG_DEV_FDU06;
+                break;
+            case 6: // HU20
+                this.deviceName = SGFDxDeviceName.SG_DEV_FDU05;
+                break;
+            case 7: // HSDU04P
+                this.deviceName = SGFDxDeviceName.SG_DEV_FDU04;
+                break;
+            case 8: // HSDU03P
+                this.deviceName = SGFDxDeviceName.SG_DEV_FDU03;
+                break;
+            case 9: // HFDU02
+                this.deviceName = SGFDxDeviceName.SG_DEV_FDU02;
+                break;
+        }
+
+        // Limpiar instancia previa
+        if (fplib != null) {
+            fplib.CloseDevice();
+            fplib.Close();
+            fplib = null;
+        }
+
+        // Inicializar nueva instancia
+        fplib = new JSGFPLib();
+        ret = fplib.Init(this.deviceName);
+        if ((fplib == null) || (ret != SGFDxErrorCode.SGFDX_ERROR_NONE)) {
+            return false;
+        }
+
+        // Abrir dispositivo
+        this.devicePort = SGPPPortAddr.AUTO_DETECT;
+        ret = fplib.OpenDevice(this.devicePort);
+        if (ret != SGFDxErrorCode.SGFDX_ERROR_NONE) {
+            return false;
+        }
+
+        // Obtener información del dispositivo
+        ret = fplib.GetDeviceInfo(deviceInfo);
+        if (ret != SGFDxErrorCode.SGFDX_ERROR_NONE) {
+            return false;
+        }
+
+        // Crear buffers de imagen
+        imgRegistration1 = new BufferedImage(deviceInfo.imageWidth, deviceInfo.imageHeight,
+                BufferedImage.TYPE_BYTE_GRAY);
+        imgRegistration2 = new BufferedImage(deviceInfo.imageWidth, deviceInfo.imageHeight,
+                BufferedImage.TYPE_BYTE_GRAY);
+        imgVerification = new BufferedImage(deviceInfo.imageWidth, deviceInfo.imageHeight,
+                BufferedImage.TYPE_BYTE_GRAY);
+
+        return true;
+    }
+
+    /**
+     * Crea y muestra el diálogo de progreso para la inicialización automática
+     */
+    private void showProgressDialog() {
+        progressDialog = new JDialog(this, "Inicializando dispositivo...", false);
+        progressDialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE); // No permitir cerrar manualmente
+        progressDialog.setLayout(new BorderLayout(10, 10));
+
+        JPanel panel = new JPanel(new BorderLayout(15, 15));
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        progressLabel = new JLabel("Preparando inicialización...");
+        progressLabel.setFont(new Font("Segoe UI Variable", Font.PLAIN, 13));
+        progressLabel.setHorizontalAlignment(JLabel.CENTER);
+
+        progressBar = new JProgressBar();
+        progressBar.setIndeterminate(true);
+        progressBar.setStringPainted(false);
+
+        panel.add(progressLabel, BorderLayout.NORTH);
+        panel.add(progressBar, BorderLayout.CENTER);
+
+        progressDialog.add(panel);
+        progressDialog.pack();
+        progressDialog.setLocationRelativeTo(this);
+        progressDialog.setVisible(true);
+    }
+
+    /**
+     * SwingWorker para manejar la inicialización automática en segundo plano
+     */
+    private class AutoInitWorker extends SwingWorker<Boolean, String> {
+        @Override
+        protected Boolean doInBackground() throws Exception {
+            try {
+                publish("Inicializando librería JSGFPLib...");
+                Thread.sleep(500); // Pequeña pausa para mostrar progreso
+
+                publish("Configurando dispositivo...");
+                Thread.sleep(300);
+
+                publish("Abriendo conexión con dispositivo...");
+                Thread.sleep(500);
+
+                publish("Obteniendo información del dispositivo...");
+                Thread.sleep(300);
+
+                publish("Preparando buffers de imagen...");
+                Thread.sleep(300);
+
+                // Ejecutar la inicialización real
+                return performDeviceInitialization();
+
+            } catch (Exception e) {
+                logger.log(Level.SEVERE, "Error durante inicialización automática", e);
+                return false;
+            }
+        }
+
+        @Override
+        protected void process(List<String> chunks) {
+            if (progressLabel != null && !chunks.isEmpty()) {
+                progressLabel.setText(chunks.get(chunks.size() - 1));
+            }
+        }
+
+        @Override
+        protected void done() {
+            // Cerrar diálogo de progreso
+            if (progressDialog != null) {
+                progressDialog.dispose();
+                progressDialog = null;
+                progressLabel = null;
+                progressBar = null;
+            }
+
+            try {
+                boolean success = get();
+                if (success) {
+                    autoInitAttempted = true;
+                    enableControls();
+                    jLabelStatus.setText("Inicialización automática exitosa - Iniciando captura automática...");
+
+                    // Iniciar captura automática después de 2 segundos
+                    Timer autoCaptureTimer = new Timer(2000, e -> {
+                        startAutoCapture();
+                    });
+                    autoCaptureTimer.setRepeats(false);
+                    autoCaptureTimer.start();
+
+                } else {
+                    autoInitAttempted = true;
+                    jLabelStatus.setText("Inicialización automática falló - Use el botón 'Inicializar' manualmente");
+                    jButtonInit.setEnabled(true);
+                    showAutoInitErrorDialog();
+                }
+            } catch (Exception e) {
+                autoInitAttempted = true;
+                jLabelStatus.setText("Error en inicialización automática: " + e.getMessage());
+                jButtonInit.setEnabled(true);
+                logger.log(Level.SEVERE, "Error en AutoInitWorker.done()", e);
+            }
+        }
+    }
+
+    /**
+     * Inicia el proceso de inicialización automática
+     */
+    private void startAutoInitialization() {
+        if (autoInitAttempted) {
+            return; // Evitar múltiples inicializaciones
+        }
+
+        showProgressDialog();
+        AutoInitWorker worker = new AutoInitWorker();
+        worker.execute();
+    }
+
+    /**
+     * Inicia la captura automática después de la inicialización exitosa
+     */
+    private void startAutoCapture() {
+        if (fplib == null) {
+            jLabelStatus.setText("Error: Dispositivo no inicializado para captura automática");
+            return;
+        }
+
+        // Marcar que estamos en modo captura automática
+        autoCaptureActive = true;
+
+        // Cambiar el texto del botón para indicar que está en modo automático
+        jButtonCapture.setText("Detener Captura Automática");
+
+        // Mostrar indicador visual de captura automática
+        jLabelStatus.setText("🔴 CAPTURA AUTOMÁTICA ACTIVA - Esperando huella...");
+
+        // Iniciar la captura continua
+        startCapture();
+    }
+
+    /**
+     * Detiene la captura automática
+     */
+    private void stopAutoCapture() {
+        if (autoCaptureActive) {
+            autoCaptureActive = false;
+            stopCapture();
+            jButtonCapture.setText("Capturar");
+            jLabelStatus.setText("Captura automática detenida");
+        }
+    }
+
+    /**
+     * Muestra diálogo de error cuando falla la inicialización automática
+     */
+    private void showAutoInitErrorDialog() {
+        JPanel panel = new JPanel(new BorderLayout(15, 15));
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
+        // Icono de error
+        JLabel iconLabel = new JLabel();
+        iconLabel.setIcon(UIManager.getIcon("OptionPane.errorIcon"));
+        iconLabel.setHorizontalAlignment(JLabel.CENTER);
+        panel.add(iconLabel, BorderLayout.WEST);
+
+        // Mensaje de error
+        String mensaje = "<html><div style='text-align: center;'><b>Inicialización automática falló</b><br><br>" +
+                "No se pudo conectar automáticamente con el dispositivo lector de huellas.<br><br>" +
+                "Posibles causas:<br>" +
+                "• El dispositivo no está conectado<br>" +
+                "• El dispositivo no está encendido<br>" +
+                "• Problemas de permisos o drivers<br><br>" +
+                "Use el botón 'Inicializar' para intentar manualmente.</div></html>";
+
+        JLabel mensajeLabel = new JLabel(mensaje);
+        mensajeLabel.setFont(new Font("Segoe UI Variable", Font.PLAIN, 13));
+        mensajeLabel.setHorizontalAlignment(JLabel.CENTER);
+        panel.add(mensajeLabel, BorderLayout.CENTER);
+
+        // Botón OK
+        JButton okButton = new JButton("Entendido");
+        okButton.addActionListener(e -> {
+            Window window = SwingUtilities.getWindowAncestor(okButton);
+            if (window instanceof JDialog) {
+                ((JDialog) window).dispose();
+            }
+        });
+
+        JPanel buttonPanel = new JPanel(new FlowLayout());
+        buttonPanel.add(okButton);
+        panel.add(buttonPanel, BorderLayout.SOUTH);
+
+        JDialog dialog = new JDialog(this, "Error de Inicialización", true);
+        dialog.setContentPane(panel);
+        dialog.setResizable(false);
+        dialog.pack();
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+    }
+
+    /**
      * This method is called from within the constructor to
      * initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is
@@ -266,7 +572,7 @@ public class JSGD extends javax.swing.JFrame {
         jLabelSpacer1 = new javax.swing.JLabel();
         jLabelSpacer2 = new javax.swing.JLabel();
 
-        setTitle("AllNovu Huella v2.5");
+        setTitle("AllNovu Huella v2.6");
         addWindowListener(new java.awt.event.WindowAdapter() {
             public void windowClosing(java.awt.event.WindowEvent evt) {
                 exitForm(evt);
@@ -852,6 +1158,13 @@ public class JSGD extends javax.swing.JFrame {
     }// GEN-LAST:event_jButtonCaptureR1ActionPerformed
 
     private void jButtonCaptureActionPerformed(java.awt.event.ActionEvent evt) {
+        // Si estamos en modo captura automática, detenerla
+        if (autoCaptureActive) {
+            stopAutoCapture();
+            return;
+        }
+
+        // Modo normal: alternar entre capturar y detener
         if (isCapturing) {
             stopCapture();
         } else {
@@ -983,15 +1296,18 @@ public class JSGD extends javax.swing.JFrame {
                                             } else {
                                                 fotoLabel.setText(
                                                         "Formato de imagen no soportado (posiblemente WEBP). Verifique el formato de la imagen en la base de datos.");
-                                                fotoLabel.setFont(new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 14));
+                                                fotoLabel.setFont(new java.awt.Font("Segoe UI Variable",
+                                                        java.awt.Font.PLAIN, 14));
                                             }
                                         } catch (IOException e) {
                                             fotoLabel.setText("Error al procesar la imagen: " + e.getMessage());
-                                            fotoLabel.setFont(new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 14));
+                                            fotoLabel.setFont(
+                                                    new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 14));
                                         }
                                     } else {
                                         fotoLabel.setText("No hay foto");
-                                        fotoLabel.setFont(new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 16));
+                                        fotoLabel.setFont(
+                                                new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 16));
                                     }
                                     if (fotoLabel.getIcon() == null) {
                                         fotoLabel.setPreferredSize(new Dimension(250, 250));
@@ -1001,10 +1317,14 @@ public class JSGD extends javax.swing.JFrame {
                                     panel.add(fotoLabel, BorderLayout.WEST);
 
                                     String mensajeCompleto = "<html><div style='padding: 10px;'>" +
-                                            "<div style='font-size: 20px; font-weight: bold; margin-bottom: 15px;'>" + nombre + " " + apellidos + "</div>" +
-                                            "<div style='font-size: 16px; margin-bottom: 10px;'><b>Carnet de Identidad:</b> " + carnet + "</div>" +
-                                            "<div style='font-size: 16px; margin-bottom: 10px;'><b>" + etiquetaFecha + ":</b> " + fechaHora + "</div>" +
-                                            "<div style='font-size: 16px; margin-top: 15px; color: #0064B4;'><b>Registro:</b> " + mensajeAsistencia + "</div>" +
+                                            "<div style='font-size: 20px; font-weight: bold; margin-bottom: 15px;'>"
+                                            + nombre + " " + apellidos + "</div>" +
+                                            "<div style='font-size: 16px; margin-bottom: 10px;'><b>Carnet de Identidad:</b> "
+                                            + carnet + "</div>" +
+                                            "<div style='font-size: 16px; margin-bottom: 10px;'><b>" + etiquetaFecha
+                                            + ":</b> " + fechaHora + "</div>" +
+                                            "<div style='font-size: 16px; margin-top: 15px; color: #0064B4;'><b>Registro:</b> "
+                                            + mensajeAsistencia + "</div>" +
                                             "</div></html>";
                                     JLabel infoLabel = new JLabel(mensajeCompleto);
                                     infoLabel.setFont(new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 16));
@@ -1215,7 +1535,8 @@ public class JSGD extends javax.swing.JFrame {
             // Intentar usar FlatLaf si está disponible
             try {
                 Class<?> lafClass = Class.forName("com.formdev.flatlaf.FlatLightLaf");
-                javax.swing.UIManager.setLookAndFeel((javax.swing.LookAndFeel) lafClass.getDeclaredConstructor().newInstance());
+                javax.swing.UIManager
+                        .setLookAndFeel((javax.swing.LookAndFeel) lafClass.getDeclaredConstructor().newInstance());
             } catch (ClassNotFoundException e) {
                 // Si FlatLaf no está disponible, usar Nimbus (incluido en Java)
                 for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
@@ -1233,10 +1554,10 @@ public class JSGD extends javax.swing.JFrame {
                 ex.printStackTrace();
             }
         }
-        
+
         // Personalizar colores y estilos
         customizeUI();
-        
+
         // Crear y mostrar la ventana principal
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
@@ -1244,7 +1565,7 @@ public class JSGD extends javax.swing.JFrame {
             }
         });
     }
-    
+
     /**
      * Personaliza los colores y estilos de la interfaz
      * Estilo: Windows 11 Fluent Design
@@ -1258,31 +1579,30 @@ public class JSGD extends javax.swing.JFrame {
         java.awt.Color grisBorde = new java.awt.Color(201, 201, 201); // #C9C9C9 - Bordes sutiles
         java.awt.Color grisTexto = new java.awt.Color(32, 32, 32); // #202020 - Texto principal
         java.awt.Color grisTextoSecundario = new java.awt.Color(96, 96, 96); // #606060 - Texto secundario
-        
+
         // Fondos Windows 11
         javax.swing.UIManager.put("Panel.background", grisFondo);
         javax.swing.UIManager.put("Frame.background", grisFondo);
         javax.swing.UIManager.put("Dialog.background", grisFondo);
         javax.swing.UIManager.put("Viewport.background", java.awt.Color.WHITE);
-        
+
         // Botones Windows 11: estilo Fluent Design
         javax.swing.UIManager.put("Button.background", azulWindows11);
         javax.swing.UIManager.put("Button.foreground", java.awt.Color.WHITE);
         javax.swing.UIManager.put("Button.select", azulWindows11Hover);
         javax.swing.UIManager.put("Button.font", new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 13));
         javax.swing.UIManager.put("Button.border", javax.swing.BorderFactory.createEmptyBorder(8, 16, 8, 16));
-        
+
         // Campos de texto Windows 11: fondo blanco, bordes sutiles
         javax.swing.UIManager.put("TextField.background", java.awt.Color.WHITE);
         javax.swing.UIManager.put("TextField.border", javax.swing.BorderFactory.createCompoundBorder(
-            javax.swing.BorderFactory.createLineBorder(grisBorde, 1),
-            javax.swing.BorderFactory.createEmptyBorder(6, 8, 6, 8)
-        ));
+                javax.swing.BorderFactory.createLineBorder(grisBorde, 1),
+                javax.swing.BorderFactory.createEmptyBorder(6, 8, 6, 8)));
         javax.swing.UIManager.put("TextField.font", new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 13));
         javax.swing.UIManager.put("TextField.foreground", grisTexto);
         javax.swing.UIManager.put("TextField.selectionBackground", azulWindows11);
         javax.swing.UIManager.put("TextField.selectionForeground", java.awt.Color.WHITE);
-        
+
         // Tabbed pane Windows 11: estilo moderno
         javax.swing.UIManager.put("TabbedPane.selected", azulWindows11);
         javax.swing.UIManager.put("TabbedPane.selectedForeground", java.awt.Color.WHITE);
@@ -1291,17 +1611,17 @@ public class JSGD extends javax.swing.JFrame {
         javax.swing.UIManager.put("TabbedPane.unselectedBackground", grisFondo);
         javax.swing.UIManager.put("TabbedPane.contentAreaColor", java.awt.Color.WHITE);
         javax.swing.UIManager.put("TabbedPane.font", new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 13));
-        
+
         // Labels Windows 11
         javax.swing.UIManager.put("Label.font", new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 13));
         javax.swing.UIManager.put("Label.foreground", grisTexto);
         javax.swing.UIManager.put("Label.background", grisFondo);
-        
+
         // Progress bar Windows 11: azul de acento
         javax.swing.UIManager.put("ProgressBar.foreground", azulWindows11);
         javax.swing.UIManager.put("ProgressBar.background", new java.awt.Color(237, 237, 237));
         javax.swing.UIManager.put("ProgressBar.borderColor", grisBorde);
-        
+
         // Combo box Windows 11: fondo blanco, bordes sutiles
         javax.swing.UIManager.put("ComboBox.background", java.awt.Color.WHITE);
         javax.swing.UIManager.put("ComboBox.font", new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 13));
@@ -1309,7 +1629,7 @@ public class JSGD extends javax.swing.JFrame {
         javax.swing.UIManager.put("ComboBox.border", javax.swing.BorderFactory.createLineBorder(grisBorde, 1));
         javax.swing.UIManager.put("ComboBox.selectionBackground", azulWindows11);
         javax.swing.UIManager.put("ComboBox.selectionForeground", java.awt.Color.WHITE);
-        
+
         // Tabla Windows 11: estilo moderno
         javax.swing.UIManager.put("Table.background", java.awt.Color.WHITE);
         javax.swing.UIManager.put("Table.foreground", grisTexto);
@@ -1320,19 +1640,19 @@ public class JSGD extends javax.swing.JFrame {
         javax.swing.UIManager.put("TableHeader.font", new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 12));
         javax.swing.UIManager.put("Table.selectionBackground", azulWindows11);
         javax.swing.UIManager.put("Table.selectionForeground", java.awt.Color.WHITE);
-        
+
         // Slider Windows 11: azul de acento
         javax.swing.UIManager.put("Slider.foreground", azulWindows11);
         javax.swing.UIManager.put("Slider.background", grisFondo);
         javax.swing.UIManager.put("Slider.track", new java.awt.Color(237, 237, 237));
-        
+
         // Scroll pane Windows 11: fondo blanco, bordes sutiles
         javax.swing.UIManager.put("ScrollPane.background", java.awt.Color.WHITE);
         javax.swing.UIManager.put("ScrollPane.border", javax.swing.BorderFactory.createLineBorder(grisBorde, 1));
         javax.swing.UIManager.put("ScrollBar.background", grisFondo);
         javax.swing.UIManager.put("ScrollBar.thumb", new java.awt.Color(200, 200, 200));
         javax.swing.UIManager.put("ScrollBar.thumbDarkShadow", new java.awt.Color(150, 150, 150));
-        
+
         // Titled border Windows 11: estilo sutil
         javax.swing.UIManager.put("TitledBorder.titleColor", grisTexto);
         javax.swing.UIManager.put("TitledBorder.border", javax.swing.BorderFactory.createLineBorder(grisBorde, 1));
@@ -1416,7 +1736,7 @@ public class JSGD extends javax.swing.JFrame {
         java.awt.Color grisFondo = new java.awt.Color(243, 243, 243); // #F3F3F3
         java.awt.Color grisBorde = new java.awt.Color(201, 201, 201); // #C9C9C9
         java.awt.Color grisTexto = new java.awt.Color(32, 32, 32); // #202020
-        
+
         // Estilizar botones principales con estilo Windows 11
         styleButton(jButtonInit, azulWindows11, azulWindows11Hover, azulWindows11Pressed);
         styleButton(jButtonToggleLED, azulWindows11, azulWindows11Hover, azulWindows11Pressed);
@@ -1425,28 +1745,27 @@ public class JSGD extends javax.swing.JFrame {
         styleButton(jButtonRegister, azulWindows11, azulWindows11Hover, azulWindows11Pressed);
         styleButton(jButtonVerify, azulWindows11, azulWindows11Hover, azulWindows11Pressed);
         styleButton(jButtonGetDeviceInfo, azulWindows11, azulWindows11Hover, azulWindows11Pressed);
-        
+
         // Estilizar botones de captura con estilo Windows 11
         styleButton(jButtonCaptureR1, azulWindows11, azulWindows11Hover, azulWindows11Pressed);
         styleButton(jButtonCaptureR2, azulWindows11, azulWindows11Hover, azulWindows11Pressed);
         styleButton(jButtonCaptureV1, azulWindows11, azulWindows11Hover, azulWindows11Pressed);
-        
+
         // Barra de estado: estilo Windows 11
         jLabelStatus.setFont(new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 12));
         jLabelStatus.setBackground(grisFondo);
         jLabelStatus.setForeground(grisTexto);
         jLabelStatus.setOpaque(true);
         jLabelStatus.setBorder(javax.swing.BorderFactory.createCompoundBorder(
-            javax.swing.BorderFactory.createLineBorder(grisBorde, 1),
-            javax.swing.BorderFactory.createEmptyBorder(8, 12, 8, 12)
-        ));
-        
+                javax.swing.BorderFactory.createLineBorder(grisBorde, 1),
+                javax.swing.BorderFactory.createEmptyBorder(8, 12, 8, 12)));
+
         // Paneles con imágenes: estilo Windows 11
         styleImageLabel(jLabelImage, grisBorde);
         styleImageLabel(jLabelRegisterImage1, grisBorde);
         styleImageLabel(jLabelRegisterImage2, grisBorde);
         styleImageLabel(jLabelVerifyImage, grisBorde);
-        
+
         // Tabla: estilo Windows 11
         if (jTableAsistencia != null) {
             jTableAsistencia.setRowHeight(32);
@@ -1463,18 +1782,17 @@ public class JSGD extends javax.swing.JFrame {
             jTableAsistencia.getTableHeader().setForeground(grisTexto);
             jTableAsistencia.getTableHeader().setReorderingAllowed(false);
         }
-        
+
         // Campos de texto: estilo Windows 11
         if (jTextFieldCarnet != null) {
             jTextFieldCarnet.setFont(new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 13));
             jTextFieldCarnet.setBackground(java.awt.Color.WHITE);
             jTextFieldCarnet.setForeground(grisTexto);
             jTextFieldCarnet.setBorder(javax.swing.BorderFactory.createCompoundBorder(
-                javax.swing.BorderFactory.createLineBorder(grisBorde, 1),
-                javax.swing.BorderFactory.createEmptyBorder(6, 8, 6, 8)
-            ));
+                    javax.swing.BorderFactory.createLineBorder(grisBorde, 1),
+                    javax.swing.BorderFactory.createEmptyBorder(6, 8, 6, 8)));
         }
-        
+
         // Paneles principales: fondo gris claro Windows 11
         if (jPanelImage != null) {
             jPanelImage.setBackground(grisFondo);
@@ -1488,12 +1806,12 @@ public class JSGD extends javax.swing.JFrame {
         if (jPanelAjustes != null) {
             jPanelAjustes.setBackground(grisFondo);
         }
-        
+
         // Tabbed pane: fondo gris claro Windows 11
         if (jTabbedPane1 != null) {
             jTabbedPane1.setBackground(grisFondo);
         }
-        
+
         // Progress bars: azul Windows 11
         if (jProgressBarR1 != null) {
             jProgressBarR1.setBackground(new java.awt.Color(237, 237, 237));
@@ -1510,7 +1828,7 @@ public class JSGD extends javax.swing.JFrame {
             jProgressBarV1.setForeground(azulWindows11);
             jProgressBarV1.setBorderPainted(false);
         }
-        
+
         // Combo boxes: estilo Windows 11
         if (jComboBoxDeviceName != null) {
             jComboBoxDeviceName.setBackground(java.awt.Color.WHITE);
@@ -1531,11 +1849,12 @@ public class JSGD extends javax.swing.JFrame {
             jComboBoxVerifySecurityLevel.setBorder(javax.swing.BorderFactory.createLineBorder(grisBorde, 1));
         }
     }
-    
+
     /**
      * Estiliza un botón con estilo Windows 11 Fluent Design
      */
-    private void styleButton(javax.swing.JButton button, java.awt.Color color, java.awt.Color hoverColor, java.awt.Color pressedColor) {
+    private void styleButton(javax.swing.JButton button, java.awt.Color color, java.awt.Color hoverColor,
+            java.awt.Color pressedColor) {
         if (button != null) {
             button.setBackground(color);
             button.setForeground(java.awt.Color.WHITE);
@@ -1544,7 +1863,7 @@ public class JSGD extends javax.swing.JFrame {
             button.setBorderPainted(false);
             // Padding estilo Windows 11
             button.setBorder(javax.swing.BorderFactory.createEmptyBorder(8, 16, 8, 16));
-            
+
             // Efectos hover y pressed estilo Windows 11
             final java.awt.Color colorOriginal = color;
             button.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -1554,21 +1873,21 @@ public class JSGD extends javax.swing.JFrame {
                         button.setBackground(hoverColor);
                     }
                 }
-                
+
                 @Override
                 public void mouseExited(java.awt.event.MouseEvent evt) {
                     if (button.isEnabled()) {
                         button.setBackground(colorOriginal);
                     }
                 }
-                
+
                 @Override
                 public void mousePressed(java.awt.event.MouseEvent evt) {
                     if (button.isEnabled()) {
                         button.setBackground(pressedColor);
                     }
                 }
-                
+
                 @Override
                 public void mouseReleased(java.awt.event.MouseEvent evt) {
                     if (button.isEnabled()) {
@@ -1578,7 +1897,7 @@ public class JSGD extends javax.swing.JFrame {
             });
         }
     }
-    
+
     /**
      * Estiliza una etiqueta que muestra imágenes: estilo Windows 11
      */
@@ -1586,9 +1905,8 @@ public class JSGD extends javax.swing.JFrame {
         if (label != null) {
             // Borde sutil estilo Windows 11
             label.setBorder(javax.swing.BorderFactory.createCompoundBorder(
-                javax.swing.BorderFactory.createLineBorder(bordeColor, 1),
-                javax.swing.BorderFactory.createEmptyBorder(8, 8, 8, 8)
-            ));
+                    javax.swing.BorderFactory.createLineBorder(bordeColor, 1),
+                    javax.swing.BorderFactory.createEmptyBorder(8, 8, 8, 8)));
             label.setBackground(java.awt.Color.WHITE);
             label.setOpaque(true);
         }
@@ -1601,30 +1919,30 @@ public class JSGD extends javax.swing.JFrame {
     private void mostrarErrorHuellaNoEncontrada(String mensaje) {
         JPanel panel = new JPanel(new BorderLayout(15, 15));
         panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        
+
         // Icono de error
         JLabel iconLabel = new JLabel();
         iconLabel.setIcon(UIManager.getIcon("OptionPane.errorIcon"));
         iconLabel.setHorizontalAlignment(JLabel.CENTER);
         panel.add(iconLabel, BorderLayout.WEST);
-        
+
         // Mensaje de error
-        JLabel mensajeLabel = new JLabel("<html><div style='text-align: center;'><b>Error</b><br><br>" + 
-                                         mensaje + "<br><br>Por favor, intente nuevamente.</div></html>");
+        JLabel mensajeLabel = new JLabel("<html><div style='text-align: center;'><b>Error</b><br><br>" +
+                mensaje + "<br><br>Por favor, intente nuevamente.</div></html>");
         mensajeLabel.setFont(new java.awt.Font("Segoe UI Variable", java.awt.Font.PLAIN, 13));
         mensajeLabel.setHorizontalAlignment(JLabel.CENTER);
         panel.add(mensajeLabel, BorderLayout.CENTER);
-        
+
         // Crear el diálogo no-modal (para que no bloquee el hilo)
         JDialog dialog = new JDialog(this, "Error de Verificación", false);
-        
+
         // Configurar el diálogo
         dialog.setContentPane(panel);
         dialog.setResizable(false);
         dialog.pack();
         dialog.setLocationRelativeTo(this);
         dialog.setVisible(true);
-        
+
         // Cerrar automáticamente después del tiempo configurado en el slider
         int tiempoEspera = jSliderSeconds.getValue() * 1000; // Convertir segundos a milisegundos
         javax.swing.Timer timer = new javax.swing.Timer(tiempoEspera, e -> {
