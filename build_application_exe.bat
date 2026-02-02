@@ -51,5 +51,15 @@ if %errorlevel% neq 0 (
     exit /b %errorlevel%
 )
 
+echo --- Copiando archivos adicionales ---
+xcopy "driver" "ControlAsistencia_Ejecutable\driver\" /E /I /Y
+if %errorlevel% neq 0 (
+    echo Error al copiar la carpeta driver. Continuara.
+)
+copy "jnisgfplib\x64\*.dll" "ControlAsistencia_Ejecutable\" /Y
+if %errorlevel% neq 0 (
+    echo Error al copiar los archivos DLL de jnisgfplib\\x64. Continuara.
+)
+
 echo --- Proceso completado exitosamente. El ejecutable se encuentra en ControlAsistencia_Ejecutable ---
 pause
